@@ -2,7 +2,7 @@
 
 Dashboard interativo (HTML + D3, sem build, sem Power BI) com a série histórica de preços de gasolina, etanol e diesel da ANP (2004–2026).
 
-**Painéis:** contador de coletas · KPIs por estado · **mapa do Brasil** (gasolina, etanol, diesel ou razão etanol/gasolina) · **ranking de municípios** · **preço real (IPCA)** · linha do tempo com eventos e governos · halteres por região · variação anual · regra dos 70% por estado · mapa de calor etanol/gasolina (27 UFs × anos) · **combustível vs. inflação (base 100)** · **maiores altas e quedas** por estado (1 mês, 12 meses, 5 anos) · **comparar até 4 estados** (R$/litro ou % vs. Brasil) · **bandeira branca vs. bandeiradas** · resumo em texto e download de CSV · feed de notícias · linha do tempo com play. O estado do painel fica na URL (`#uf=SP&fuel=etanol&m=2022-06&real=1&map=ratio`).
+**Painéis:** contador de coletas · KPIs por estado · **mapa do Brasil** (gasolina, etanol, diesel ou razão etanol/gasolina) · **ranking de municípios** · **preço real (IPCA)** · linha do tempo com eventos e governos · halteres por região · variação anual · regra dos 70% por estado · mapa de calor etanol/gasolina (27 UFs × anos) · **combustível vs. inflação (base 100)** · **maiores altas e quedas** por estado (1 mês, 12 meses, 5 anos) · **comparar até 4 estados** (R$/litro ou % vs. Brasil) · **bandeira branca vs. bandeiradas** · resumo em texto e download de CSV · botão **Sumário** (guia de cada indicador e gráfico, com atalho para cada um) · feed de notícias · linha do tempo com play. O estado do painel fica na URL (`#uf=SP&fuel=etanol&m=2022-06&real=1&map=ratio`).
 
 ## Estrutura
 ```

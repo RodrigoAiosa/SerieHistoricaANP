@@ -185,3 +185,21 @@ h3.big b{font-weight:700}
 .mov-row{cursor:pointer}
 .mov-row:hover rect.bar{opacity:1}
 .empty{font-size:13px;color:var(--muted);padding:24px 8px}
+
+/* sumário (guia do painel) */
+.card{scroll-margin-top:76px}
+.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,35%{outline:3px solid var(--gold);outline-offset:3px}100%{outline:3px solid transparent;outline-offset:3px}}
+dialog.guide{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(470px,100vw);border:0;padding:0;background:var(--bg);color:var(--ink);box-shadow:-8px 0 28px rgba(0,0,0,.18)}
+dialog.guide::backdrop{background:rgba(31,42,51,.35)}
+.guide-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 18px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+.guide-head h2{font-size:18px;font-weight:600}
+.guide-body{padding:6px 18px 28px}
+.guide-body h4{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+.g-item{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:inherit;font:inherit}
+.g-item:hover{border-color:var(--ink2)}
+.g-item:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.g-item b{display:flex;justify-content:space-between;gap:8px;font-size:13.5px}
+.g-item b span{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
+.g-item p{font-size:13px;line-height:1.5;color:var(--ink2);margin-top:4px}
+.g-item p em{font-style:normal;font-weight:600;color:var(--ink)}

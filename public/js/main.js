@@ -166,6 +166,7 @@
     document.querySelectorAll('#mv-win button').forEach(b => b.onclick = () => { S.mv = +b.dataset.w; syncControls(); writeHash(); drawMovers(); });
     $('#cmp-add').onchange = (e) => { const u = e.target.value; if (u && S.cmp.length < 4 && !S.cmp.includes(u)) S.cmp.push(u); cmpControls(); writeHash(); drawCompare(); };
     document.querySelectorAll('#cmp-mode button').forEach(b => b.onclick = () => { S.cd = b.dataset.cd === '1'; syncControls(); writeHash(); drawCompare(); });
+    buildGuide();
     if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
@@ -377,6 +378,58 @@
     $('#n-band').innerHTML = g == null ? 'Sem dados de bandeira branca para este mês.'
       : `Em ${D.label(i)}, a bandeira branca estava <span class="${g < 0 ? 'dn' : 'up'}">${f1.format(Math.abs(g))}% ${g < 0 ? 'mais barata' : 'mais cara'}</span> (${R$(br[i] - bd[i] < 0 ? bd[i] - br[i] : br[i] - bd[i])}/litro de diferença).`
         + (avg != null ? ` Média da série: ${pctTxt(avg)}.` : '');
+  }
+
+
+  /* ---------- sumário (guia de cada item do painel) ---------- */
+  const GUIDE = [
+    ['Controles', [
+      ['Estado', '.topbar', 'Filtra o painel para um estado. “Brasil (média)” é a média simples dos 27 estados. Também dá para escolher clicando no mapa, nas barras, na dispersão ou no ranking de municípios.'],
+      ['Combustível', '.topbar', 'Gasolina, etanol, diesel ou “Os três”. Os gráficos que mostram um combustível só (altas e quedas, comparar estados, bandeira) usam a gasolina quando está em “Os três”.'],
+      ['Nominal / Real (IPCA)', '.topbar', '<em>Nominal</em> é o preço como foi coletado. <em>Real</em> corrige pelo IPCA e mostra tudo em reais de hoje, para comparar épocas diferentes sem o efeito da inflação.'],
+      ['Linha do tempo', '.timebar', 'Escolhe o mês analisado; todo o painel acompanha. O botão ▶ anima mês a mês e “Mais recente” volta ao último mês. A seleção fica no endereço da página, então o link já compartilha a visão atual.'],
+    ]],
+    ['Notícias', [
+      ['O que aconteceu', '.feed', 'Fatos que mexeram com o preço (greves, guerras, mudanças de política, reajustes). Aparecem os mais próximos do mês escolhido, com fonte. Dá para buscar por qualquer termo, filtrar por tipo e clicar num fato para ir ao mês dele.'],
+    ]],
+    ['Indicadores (cartões)', [
+      ['Gasolina · Etanol · Diesel', '#kpis', 'Preço médio por litro no mês, a variação contra o mês anterior (▲ vermelho = subiu, ▼ verde = caiu) e uma mini-linha com a série inteira.'],
+      ['Etanol vale a pena?', '#kpis', 'Preço do etanol ÷ preço da gasolina. Até 70% compensa abastecer com etanol; acima disso, a gasolina rende mais por real gasto.'],
+      ['Posição no ranking', '#kpis', 'Com um estado escolhido, mostra a posição dele entre os 27 no preço da gasolina (1º = mais caro).'],
+      ['Contra a média do Brasil', '#kpis', 'Quanto a gasolina do estado está acima ou abaixo da média nacional, em % e em R$ por litro.'],
+    ]],
+    ['Gráficos', [
+      ['Para onde foi o preço', '#chart-line', 'A série mensal desde 2004. Os círculos no topo são os fatos do feed e as faixas indicam os governos. Passe o mouse para ver os valores; clique para ir ao mês.'],
+      ['Onde é mais caro abastecer', '#chart-dumb', 'Preço médio de cada região no mês. Cada ponto é um combustível; quanto mais à direita, mais caro.'],
+      ['Quanto subiu em cada ano', '#chart-bars', 'Variação % da média de cada ano contra o ano anterior. O ano do mês selecionado fica destacado; clique numa coluna para ir àquele ano.'],
+      ['Vale a pena abastecer com etanol?', '#chart-scatter', 'Cada ponto é um estado: na horizontal, o preço da gasolina; na vertical, a razão etanol ÷ gasolina. A faixa verde (abaixo de 70%) é onde o etanol compensa.'],
+      ['Mapa do Brasil', '#chart-map', 'Os estados coloridos pelo valor do mês (gasolina, etanol, diesel ou razão etanol ÷ gasolina). Cor mais escura = valor mais alto. Clique num estado para selecioná-lo.'],
+      ['Municípios mais caros e mais baratos', '#mun-list', 'Os 7 municípios mais caros e os 7 mais baratos entre os mais pesquisados, só dos últimos 24 meses dos dados. Com um estado escolhido, o recorte é dele.'],
+      ['Combustível contra a inflação', '#chart-infl', 'Gasolina, etanol e diesel com o IPCA, todos em base 100 no primeiro mês. Acima da linha tracejada do IPCA, o combustível subiu mais que a inflação.'],
+      ['Maiores altas e quedas', '#chart-mov', 'Os 7 estados que mais subiram e os 7 que mais caíram em 1 mês, 12 meses ou 5 anos, até o mês escolhido. Clique numa barra para selecionar o estado.'],
+      ['Comparar estados', '#chart-cmp', 'Até 4 estados lado a lado com a média do Brasil. O modo “vs. Brasil” mostra a diferença em % e separa estados de preços parecidos.'],
+      ['Bandeira branca vs. bandeiradas', '#chart-band', 'Preço médio em postos sem bandeira (brancos) contra postos de distribuidoras, e quanto o branco é mais barato ou mais caro no mês.'],
+      ['Mapa de calor etanol ÷ gasolina', '#chart-heat', 'Um quadro estado × ano com a razão etanol ÷ gasolina. Tons de verde = o etanol compensou naquele ano e lugar; tons quentes = não compensou.'],
+    ]],
+    ['Resumo e dados', [
+      ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
+      ['Fonte e avisos', '.foot', 'Dados da ANP (levantamento de preços de revenda). “Dados de demonstração” indica números sintéticos; “IPCA aproximado” indica que o índice oficial ainda não foi carregado.'],
+    ]],
+  ];
+  function buildGuide() {
+    const dlg = $('#guide'), body = $('#guide-body');
+    body.innerHTML = GUIDE.map(([grp, items]) => `<h4>${grp}</h4>` + items.map(([t, sel, d]) =>
+      `<button class="g-item" type="button" data-sel="${sel}"><b>${t}<span>ir ↗</span></b><p>${d}</p></button>`).join('')).join('');
+    $('#btn-guide').onclick = () => dlg.showModal();
+    $('#guide-close').onclick = () => dlg.close();
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // clique fora (no fundo)
+    body.querySelectorAll('.g-item').forEach(b => b.onclick = () => {
+      const node = document.querySelector(b.dataset.sel); if (!node) return;
+      const target = node.closest('.card, .feed, .timebar, .topbar, .foot, .kpis') || node;
+      dlg.close();
+      target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
+    });
   }
 
   /* ---------- resumo em texto + CSV ---------- */

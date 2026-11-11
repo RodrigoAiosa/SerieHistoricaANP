@@ -33,6 +33,7 @@
   <span id="demo-flag" class="demo-flag" hidden title="Os números abaixo são sintéticos. Rode scripts/build_data.py com os CSVs da ANP para usar dados reais.">Dados de demonstração</span>
   <span class="spacer"></span>
   <button id="chip-uf" class="chip" hidden title="Limpar seleção"></button>
+  <button id="btn-guide" class="btn" type="button" aria-haspopup="dialog" title="Guia de cada indicador e gráfico do painel">☰ Sumário</button>
 </header>
 
 <section class="hero" id="hero">
@@ -191,6 +192,14 @@
   <p class="src" id="src">Fonte: ANP</p>
   <p class="src" id="src2">Mapa: @svg-maps/brazil (CC BY 4.0)</p>
 </footer>
+
+<dialog id="guide" class="guide" aria-labelledby="guide-title">
+  <div class="guide-head">
+    <div><h2 id="guide-title">Sumário do painel</h2><p class="sub">O que cada indicador e gráfico mostra · clique para ir até ele</p></div>
+    <button id="guide-close" class="btn" type="button" aria-label="Fechar sumário">✕</button>
+  </div>
+  <div id="guide-body" class="guide-body"></div>
+</dialog>
 
 <div id="tip" class="tip" role="tooltip" hidden></div>
 
