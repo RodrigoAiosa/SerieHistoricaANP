@@ -68,12 +68,12 @@ def main(raw_dir):
         if not {"uf", "produto", "data", "venda"} <= set(df.columns):
             print(f"[aviso] {f.name}: colunas inesperadas {list(df.columns)[:8]}...")
             continue
-        total += len(df)
         df["fuel"] = df["produto"].map(product_key)
-        df = df.dropna(subset=["fuel"])
+        df = df.dropna(subset=["fuel"])          # só gasolina, etanol e diesel (ignora GLP, GNV etc.)
         df["venda"] = pd.to_numeric(df["venda"].str.replace(",", "."), errors="coerce")
         df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce")
-        df = df.dropna(subset=["venda", "data"])
+        df = df.dropna(subset=["venda", "data"])  # exige preço e data válidos
+        total += len(df)                         # coletas = linhas efetivamente usadas pelo painel
         df["ym"] = df["data"].dt.strftime("%Y-%m")
         parts.append(df.groupby(["fuel", "uf", "ym"])["venda"].agg(["sum", "count"]).reset_index())
         if "mun" in df.columns:
@@ -120,7 +120,7 @@ def main(raw_dir):
         "fonte": "ANP — Série histórica do levantamento de preços de combustíveis",
         "atualizado": months[-1],
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"ok: {len(months)} meses, {len(ufs)} UFs, {total:,} coletas")
+    print(f"ok: {len(months)} meses, {len(ufs)} UFs, {total:,} coletas (gasolina, etanol e diesel)")
 
 
 if __name__ == "__main__":

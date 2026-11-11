@@ -28,7 +28,7 @@ pip install pandas
 # baixe os CSVs semestrais da ANP (Série histórica do levantamento de preços) em raw/
 python scripts/build_data.py raw/
 ```
-Isso reescreve `series.json`, `municipios.json` e `meta.json` (`demo:false`, com a contagem real de coletas). O script normaliza colunas e produtos, mas os layouts da ANP mudaram ao longo dos anos: ajuste `COLS`/`PRODUCTS` se algum semestre for ignorado.
+Isso reescreve `series.json`, `municipios.json` e `meta.json` (`demo:false`). O contador do topo passa a mostrar as coletas reais: só linhas de gasolina, etanol e diesel com preço e data válidos. O script normaliza colunas e produtos, mas os layouts da ANP mudaram ao longo dos anos: ajuste `COLS`/`PRODUCTS` se algum semestre for ignorado.
 
 **IPCA:** o `ipca.json` que vem no repositório é uma *aproximação* (taxas anuais distribuídas pelos meses; 2025–26 estimados), e a tela avisa "IPCA aprox.". Rode `python scripts/fetch_ipca.py` para trocar pelo índice oficial.
 
