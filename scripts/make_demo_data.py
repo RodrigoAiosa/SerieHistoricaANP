@@ -139,28 +139,7 @@ print("Etanol compensa em jun/2026 (demo):", winners, len(winners))
     **series,
 }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
-(OUT / "events.json").write_text(json.dumps([
-    {"date": "2008-09", "type": "crise", "title": "Crise financeira global",
-     "text": "Colapso do Lehman Brothers; o barril de petróleo despenca nos meses seguintes."},
-    {"date": "2015-02", "type": "politica", "title": "Alta de PIS/Cofins e Cide",
-     "text": "Governo eleva tributos federais sobre gasolina e diesel."},
-    {"date": "2017-07", "type": "petrobras", "title": "Reajustes mais frequentes na Petrobras",
-     "text": "Nova política permite revisões de preço quase diárias nas refinarias."},
-    {"date": "2018-05", "type": "greve", "title": "Greve dos caminhoneiros",
-     "text": "Dez dias de bloqueios."},
-    {"date": "2020-03", "type": "pandemia", "title": "Pandemia",
-     "text": "A demanda despenca."},
-    {"date": "2022-02", "type": "guerra", "title": "Guerra na Ucrânia",
-     "text": "Barril a US$ 127."},
-    {"date": "2022-06", "type": "politica", "title": "Teto de ICMS sobre combustíveis",
-     "text": "Lei Complementar 194 limita o ICMS cobrado sobre combustíveis."},
-    {"date": "2023-03", "type": "politica", "title": "Volta o PIS/Cofins na gasolina",
-     "text": "Fim da desoneração federal sobre a gasolina."},
-    {"date": "2023-05", "type": "petrobras", "title": "Petrobras deixa a paridade de importação",
-     "text": "Estatal abandona o PPI e adota nova estratégia comercial de preços."},
-    {"date": "2025-08", "type": "etanol", "title": "Gasolina E30",
-     "text": "Mistura obrigatória de etanol na gasolina sobe para 30%."},
-], ensure_ascii=False, indent=2), encoding="utf-8")
+# events.json é curado à mão (public/data/events.json) e NÃO é gerado aqui.
 
 (OUT / "meta.json").write_text(json.dumps({
     "demo": True,

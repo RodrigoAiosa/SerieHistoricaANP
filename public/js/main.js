@@ -15,9 +15,12 @@
     pandemia: { n: 'Pandemia', c: '#7a56d6' },
     guerra: { n: 'Guerra', c: '#C0392B' },
     crise: { n: 'Crise', c: '#8C5E3C' },
+    anp: { n: 'ANP', c: '#5A7A2B' },
+    petroleo: { n: 'Petróleo', c: '#4A5560' },
+    inflacao: { n: 'Inflação', c: '#A0522D' },
     politica: { n: 'Política', c: '#5C6B7A' },
     petrobras: { n: 'Petrobras', c: '#0E7C86' },
-    etanol: { n: 'Etanol', c: '#2E7D4F' },
+    etanol: { n: 'Biocombustíveis', c: '#2E7D4F' },
   };
   const ERAS = [
     { n: 'Lula', from: '2004-05', to: '2010-12' },
@@ -75,8 +78,10 @@
 
     // médias anuais
     const ym = (arr, y) => d3.mean(yearIdx[y], i => arr[i]);
-    const evs = events.map(e => ({ ...e, i: Math.max(0, months.indexOf(e.date)) }))
-      .filter(e => months.includes(e.date)).sort((a, b) => a.i - b.i);
+    // eventos posteriores ao fim da série entram no feed (i = último mês, after = true) mas não no gráfico
+    const lastYm = months[N - 1];
+    const evs = events.map(e => ({ ...e, after: e.date > lastYm, i: e.date > lastYm ? N - 1 : months.indexOf(e.date) }))
+      .filter(e => e.i >= 0).sort((a, b) => a.i - b.i);   // ordenação estável: a ordem do arquivo desempata o mesmo mês
 
     // preços reais: reais de hoje (último mês) via IPCA
     const defl = ipca.indice.map(v => ipca.indice[ipca.indice.length - 1] / v);
@@ -281,8 +286,11 @@
     // busca: ignora maiúsculas e acentos; todos os termos digitados precisam aparecer
     const fold = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const terms = fold(S.q).split(/\s+/).filter(Boolean);
-    const hay = (e) => fold(`${e.title} ${e.text} ${TYPES[e.type]?.n || e.type} ${MESES_L[+e.date.slice(5) - 1]} ${e.date.slice(0, 4)}`);
-    const items = D.evs.filter(e => (S.type === 'all' || e.type === S.type) && terms.every(t => hay(e).includes(t)))
+    // casa o termo só no início de palavras (evita "irã" casar com "Silveira")
+    const wordStart = (t) => new RegExp('(?<![a-z0-9])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+    const hay = (e) => fold(`${e.title} ${e.text} ${TYPES[e.type]?.n || e.type} ${MESES_L[+e.date.slice(5) - 1]} ${e.date.slice(0, 4)} ${host(e.url || '')}`);
+    const items = D.evs.filter(e => (S.type === 'all' || e.type === S.type) && terms.every(t => wordStart(t).test(hay(e))))
       .map(e => ({ ...e, dist: Math.abs(e.i - i) })).sort((a, b) => a.dist - b.dist);
     $('#feed-sub').textContent = `${items.length} ${items.length === 1 ? 'registro' : 'registros'} · ${terms.length ? 'filtrados · ' : ''}mais próximos de ${D.label(i)}`;
     list.innerHTML = '';
@@ -292,7 +300,7 @@
     const mark = (t) => {
       if (!terms.length) return esc(t);
       const f = fold(t), ranges = [];
-      for (const term of terms) { let k = f.indexOf(term); while (k >= 0) { ranges.push([k, k + term.length]); k = f.indexOf(term, k + term.length); } }
+      for (const term of terms) { const re = new RegExp(wordStart(term).source, 'g'); let mt; while ((mt = re.exec(f))) { ranges.push([mt.index, mt.index + term.length]); if (!term.length) break; } }
       ranges.sort((a, b) => a[0] - b[0]);
       const merged = []; for (const r of ranges) { const l = merged.at(-1); if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push([...r]); }
       let out = '', pos = 0;
@@ -302,12 +310,12 @@
     for (const e of items) {
       const t = TYPES[e.type] || { n: e.type, c: '#999' };
       const [y, m] = e.date.split('-');
-      const node = el('div', `ev${e.i > i ? ' future' : ''}${e.dist <= 2 ? ' near' : ''}`,
+      const node = el('div', `ev${e.i > i ? ' future' : ''}${e.dist === 0 && !e.after ? ' near' : ''}`,
         `<h4>${mark(e.title)}</h4><p>${mark(e.text)}</p>
-         <div class="meta"><span class="tag" style="--c:${t.c}">${t.n}</span><span>${MESES_L[+m - 1]} de ${y}</span></div>`);
+         <div class="meta"><span class="tag" style="--c:${t.c}">${t.n}</span><span>${e.day ? e.day + ' de ' : ''}${MESES_L[+m - 1]} de ${y}</span>${e.url ? `<a class="src-link" href="${e.url}" target="_blank" rel="noopener noreferrer" title="${host(e.url)}">${host(e.url).split('.').slice(-3, -1).join('.') || host(e.url)} ↗</a>` : ''}</div>`);
       node.style.setProperty('--c', t.c);
       node.tabIndex = 0;
-      node.onclick = () => { stop(); setIdx(e.i); };
+      node.onclick = (ev) => { if (ev.target.closest('a')) return; stop(); setIdx(e.i); };
       node.onkeydown = (ev) => { if (ev.key === 'Enter') node.click(); };
       list.append(node);
     }
@@ -384,7 +392,7 @@
 
     // eventos (marcadores no topo)
     const evg = svg.append('g');
-    evg.selectAll('circle').data(D.evs).join('circle')
+    evg.selectAll('circle').data(D.evs.filter(e => !e.after)).join('circle')
       .attr('cx', d => x(d.i)).attr('cy', 32).attr('r', d => Math.abs(d.i - i) <= 1 ? 5.5 : 4)
       .attr('fill', d => (Math.abs(d.i - i) <= 1 ? (TYPES[d.type]?.c || '#999') : '#f8f8f8'))
       .attr('stroke', d => TYPES[d.type]?.c || '#999').attr('stroke-width', 1.6).style('cursor', 'pointer')

@@ -9,7 +9,7 @@ Dashboard interativo (HTML + D3, sem build, sem Power BI) com a série históric
 public/            site estático (é o que a Vercel publica)
   index.html, css/, js/main.js, vendor/d3.min.js
   data/series.json   preço médio mensal por UF (R$/L)
-  data/events.json   notícias/marcos (edite à vontade)
+  data/events.json   notícias/marcos, com data, tipo e link da fonte (curado à mão; datas após o fim da série entram só no feed)
   data/meta.json     { demo, coletas, fonte, atualizado }
   data/ipca.json     índice IPCA mensal (base do toggle Real)
   data/brasil-uf.json  malha SVG dos 27 estados (@svg-maps/brazil, CC BY 4.0)

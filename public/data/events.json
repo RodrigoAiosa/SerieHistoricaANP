@@ -1,62 +1,297 @@
 [
-  {
-    "date": "2008-09",
-    "type": "crise",
-    "title": "Crise financeira global",
-    "text": "Colapso do Lehman Brothers; o barril de petróleo despenca nos meses seguintes."
-  },
-  {
-    "date": "2015-02",
-    "type": "politica",
-    "title": "Alta de PIS/Cofins e Cide",
-    "text": "Governo eleva tributos federais sobre gasolina e diesel."
-  },
-  {
-    "date": "2017-07",
-    "type": "petrobras",
-    "title": "Reajustes mais frequentes na Petrobras",
-    "text": "Nova política permite revisões de preço quase diárias nas refinarias."
-  },
-  {
-    "date": "2018-05",
-    "type": "greve",
-    "title": "Greve dos caminhoneiros",
-    "text": "Dez dias de bloqueios."
-  },
-  {
-    "date": "2020-03",
-    "type": "pandemia",
-    "title": "Pandemia",
-    "text": "A demanda despenca."
-  },
-  {
-    "date": "2022-02",
-    "type": "guerra",
-    "title": "Guerra na Ucrânia",
-    "text": "Barril a US$ 127."
-  },
-  {
-    "date": "2022-06",
-    "type": "politica",
-    "title": "Teto de ICMS sobre combustíveis",
-    "text": "Lei Complementar 194 limita o ICMS cobrado sobre combustíveis."
-  },
-  {
-    "date": "2023-03",
-    "type": "politica",
-    "title": "Volta o PIS/Cofins na gasolina",
-    "text": "Fim da desoneração federal sobre a gasolina."
-  },
-  {
-    "date": "2023-05",
-    "type": "petrobras",
-    "title": "Petrobras deixa a paridade de importação",
-    "text": "Estatal abandona o PPI e adota nova estratégia comercial de preços."
-  },
-  {
-    "date": "2025-08",
-    "type": "etanol",
-    "title": "Gasolina E30",
-    "text": "Mistura obrigatória de etanol na gasolina sobe para 30%."
-  }
+ {
+  "date": "2026-11",
+  "type": "anp",
+  "title": "ANP: gasolina cai 0,15% e diesel sobe 0,14% na última semana de outubro",
+  "text": "Levantamento semanal (25 a 31/10) mostra variações discretas nos postos.",
+  "url": "https://acritica.net/economia/gasolina-cai-diesel-sobe-ultima-semana-outubro-anp/",
+  "day": 3
+ },
+ {
+  "date": "2026-11",
+  "type": "petrobras",
+  "title": "Petrobras reajusta o querosene de aviação em 7,2%",
+  "text": "Alta de R$ 0,45 por litro às distribuidoras, após aumentos em setembro e outubro.",
+  "url": "https://www.oliberal.com/economia/petrobras-aumenta-preco-do-querosene-de-aviacao-em-7-2-a-partir-deste-domingo-1.1189500",
+  "day": 1
+ },
+ {
+  "date": "2026-10",
+  "type": "politica",
+  "title": "Diesel S-10 sobe 2,55% em outubro; subvenção de R$ 2,12/L é renovada",
+  "text": "Levantamento da ValeCard: gasolina recua 0,29% no mês. Governo renovou por mais 30 dias o subsídio ao diesel.",
+  "url": "https://www.canalrural.com.br/economia/diesel-sobe-em-outubro-e-etanol-ganha-competitividade-aponta-valecard/"
+ },
+ {
+  "date": "2026-10",
+  "type": "politica",
+  "title": "Estados aprovam alta de até 11,1% no ICMS dos combustíveis",
+  "text": "Aumento sobre gasolina, diesel e gás de cozinha passa a valer em fevereiro de 2027.",
+  "url": "https://www.cut.org.br/noticias/estados-elevam-icms-de-combustiveis-enquanto-uniao-atua-para-conter-precos-b9d6/",
+  "day": 29
+ },
+ {
+  "date": "2026-10",
+  "type": "anp",
+  "title": "Etanol equivale a 63% da gasolina",
+  "text": "Semana de 18 a 24/10: gasolina a R$ 6,49 e etanol a R$ 4,11 na média nacional, bem abaixo da regra dos 70%.",
+  "url": "https://garagem360.com.br/?p=322479"
+ },
+ {
+  "date": "2026-10",
+  "type": "anp",
+  "title": "Etanol cai a R$ 4,11 e gás de cozinha é o único a subir",
+  "text": "ANP: na semana de 11 a 17/10 o etanol recuou 0,72%; gasolina e diesel também caíram.",
+  "url": "https://www.jornaldocomercio.com/economia/2026/10/1267601-anp-gas-de-cozinha-e-unico-a-subir-na-semana-passada-enquanto-gasolina-e-diesel-caem.html",
+  "day": 20
+ },
+ {
+  "date": "2026-10",
+  "type": "politica",
+  "title": "Governo zera PIS/Cofins e Cide sobre a gasolina por 30 dias",
+  "text": "A redução tributária passa de R$ 0,63 para R$ 0,89 por litro; a medida pode ser revista ou prorrogada.",
+  "url": "https://www.legisweb.com.br/noticia/?id=34530",
+  "day": 9
+ },
+ {
+  "date": "2026-09",
+  "type": "politica",
+  "title": "Confaz atualiza o PMPF a partir de 1º de outubro",
+  "text": "Novos valores de referência para o cálculo do ICMS dos combustíveis, em cada estado e no DF.",
+  "url": "https://timesbrasil.com.br/brasil/preco-dos-combustiveis-deve-mudar-em-outubro/",
+  "day": 25
+ },
+ {
+  "date": "2026-09",
+  "type": "anp",
+  "title": "Diesel S-10 chega a R$ 7,33/L, maior valor desde abril",
+  "text": "Alta de 6,5% em setembro. Governo ampliou os subsídios e a Petrobras manteve seus preços.",
+  "url": "https://bpmoney.com.br/?p=423182"
+ },
+ {
+  "date": "2026-09",
+  "type": "petrobras",
+  "title": "Petrobras cancela reajuste da gasolina horas após anunciar",
+  "text": "A alta de R$ 0,19/L foi desfeita; o preço às distribuidoras vai a R$ 3,05/L pelo fim de um desconto ligado à MP 1.358.",
+  "url": "https://timesbrasil.com.br/brasil/petrobras-recua-e-cancela-reajuste-da-gasolina-horas-apos-anuncio/",
+  "day": 10
+ },
+ {
+  "date": "2026-09",
+  "type": "politica",
+  "title": "Decreto reduz PIS/Cofins da gasolina e do etanol; MP subvenciona o diesel",
+  "text": "De 10/9 a 9/10, os tributos federais da gasolina caem R$ 0,63/L (ficam em R$ 0,16/L) e o etanol hidratado tem PIS/Cofins zerados.",
+  "url": "https://agenciainfra.com/blog/wp-content/uploads/2026/09/0909-Release-Governo-Federal-adota-novas-medidas-para-combustiveis-apos-novos-aumentos-do-petroleo.pdf",
+  "day": 9
+ },
+ {
+  "date": "2026-08",
+  "type": "etanol",
+  "title": "B16 segue sem decisão do CNPE",
+  "text": "StoneX projeta demanda de 11 bilhões de litros de biodiesel em 2027 se a mistura de 16% vier em março.",
+  "url": "https://paraibabusiness.com.br/biodiesel-pode-chegar-a-11-bilhoes-de-litros-em-2027-com-b16-projeta-stonex/",
+  "day": 18
+ },
+ {
+  "date": "2026-08",
+  "type": "anp",
+  "title": "Diesel S-10 lidera a queda dos combustíveis na semana",
+  "text": "ANP: diesel S-10 recua 0,5%, gasolina 0,4% e gás de cozinha 0,2%.",
+  "url": "https://timesbrasil.com.br/empresas-e-negocios/combustiveis/diesel-s-10-lidera-queda-dos-combustiveis-na-semana/",
+  "day": 14
+ },
+ {
+  "date": "2026-08",
+  "type": "etanol",
+  "title": "Gasolina E32 passa a valer em todo o país",
+  "text": "Resolução do CNPE publicada em 30/7 institui temporariamente a mistura de 32% de etanol anidro.",
+  "url": "https://agenciagov.ebc.com.br/noticias/202607/resolucao-que-institui-o-e32-e-publicada-e-nova-mistura-passa-a-valer-neste-sabado",
+  "day": 1
+ },
+ {
+  "date": "2026-07",
+  "type": "etanol",
+  "title": "CNPE aprova a gasolina E32",
+  "text": "Mistura sobe de 30% para 32% por 180 dias, prorrogáveis; governo estima 900 milhões de litros a menos de gasolina importada por ano.",
+  "url": "https://cenarioenergia.com.br/2026/07/14/cnpe-eleva-mistura-de-etanol-na-gasolina-para-32-e-projeta-corte-de-ate-900-milhoes-de-litros-em-importacoes/",
+  "day": 14
+ },
+ {
+  "date": "2026-07",
+  "type": "petroleo",
+  "title": "Tensão EUA–Irã faz o petróleo disparar mais de 9%",
+  "text": "Alta traz incerteza sobre o ritmo de queda dos juros e sobre a inflação no Brasil.",
+  "url": "https://www.band.com.br/noticias/jornal-da-band/ultimas/tensao-entre-eua-e-ira-faz-petroleo-disparar-e-ameaca-alivio-na-inflacao-202607132156",
+  "day": 13
+ },
+ {
+  "date": "2026-06",
+  "type": "petroleo",
+  "title": "Acordo preliminar EUA–Irã derruba o petróleo",
+  "text": "Brent fecha a US$ 83,36 (−4,55%), menor valor em três meses; durante o conflito chegou a superar US$ 110.",
+  "url": "https://www.brasilagro.com.br/conteudo/petroleo-cai-quase-5-com-acordo-entre-eua-e-ira-.html",
+  "day": 15
+ },
+ {
+  "date": "2026-06",
+  "type": "etanol",
+  "title": "Governo propõe E32 após reunião com o setor de etanol",
+  "text": "Ministro Alexandre Silveira diz que levará ao CNPE o aumento da mistura de 30% para até 32%.",
+  "url": "https://mercadoeconsumo.com.br/10/06/2026/economia/governo-preve-aumento-de-etanol-na-gasolina-de-30-para-ate-32/",
+  "day": 9
+ },
+ {
+  "date": "2026-05",
+  "type": "petroleo",
+  "title": "Brent chega perto de US$ 100 após ataque dos EUA no Irã",
+  "text": "No Brasil, o governo oficializa a subvenção da gasolina para conter a inflação.",
+  "url": "https://www.band.com.br/bandnews-fm/noticias/apos-ataques-dos-eua-no-ira-preco-do-petroleo-volta-a-subir-202605261008",
+  "day": 26
+ },
+ {
+  "date": "2026-05",
+  "type": "politica",
+  "title": "Decreto regulamenta subsídio de R$ 0,44 na gasolina",
+  "text": "Define as regras de compensação a produtores e importadores de combustíveis.",
+  "url": "https://digital.correiodamanha.com.br/jornalcorreiodamanha/2026/05/27/2058fe/pdf/2705cmanha24.pdf",
+  "day": 25
+ },
+ {
+  "date": "2026-05",
+  "type": "politica",
+  "title": "MP 1.358 cria subvenção para os combustíveis",
+  "text": "Subsídio equivale aos tributos federais: R$ 0,89/L na gasolina e R$ 0,35/L no diesel, por dois meses inicialmente.",
+  "url": "https://www.legisweb.com.br/noticia/?id=33430",
+  "day": 13
+ },
+ {
+  "date": "2026-04",
+  "type": "petroleo",
+  "title": "Defasagem do diesel chega a R$ 2,24/L em abril",
+  "text": "Abicom: diferença média entre o preço no Brasil e a paridade internacional; WTI chega a US$ 100,32.",
+  "url": "https://fgvenergia.fgv.br/sites/fgvenergia.fgv.br/files/informe_og_-_abr_v1_1.pdf"
+ },
+ {
+  "date": "2026-04",
+  "type": "etanol",
+  "title": "Lula antecipa E32 e B16; CNPE cancela a reunião de 7/5",
+  "text": "Após o anúncio do presidente, a reunião do conselho prevista para 7 de maio foi cancelada.",
+  "url": "https://eixos.com.br/combustiveis-e-bioenergia/biocombustiveis/watt-defende-estudos-antecipados-para-aumento-de-biocombustiveis-em-momentos-de-crise/",
+  "day": 30
+ },
+ {
+  "date": "2026-04",
+  "type": "etanol",
+  "title": "Governo confirma a gasolina E32",
+  "text": "Ministro Silveira diz que levará ao CNPE a mistura de 30% para 32%.",
+  "url": "https://istoedinheiro.com.br/ministro-confirma-aumento-da-mistura-obrigatoria-de-etanol-na-gasolina-para-32-em-maio-2",
+  "day": 24
+ },
+ {
+  "date": "2026-04",
+  "type": "politica",
+  "title": "Governo propõe usar receita extra do petróleo para cortar tributos",
+  "text": "Projeto de lei complementar permite usar a arrecadação extraordinária para reduzir PIS/Cofins e Cide.",
+  "url": "https://monitormercantil.com.br/governo-envia-ao-congresso-pl-que-converte-receitas-extras-com-petroleo-em-desoneracoes/",
+  "day": 23
+ },
+ {
+  "date": "2026-04",
+  "type": "inflacao",
+  "title": "IPCA de março: combustíveis sobem 4,47%",
+  "text": "Índice geral de 0,88%; o grupo Transportes responde por 0,34 ponto percentual.",
+  "url": "https://fpabramo.org.br/?p=191109"
+ },
+ {
+  "date": "2026-03",
+  "type": "politica",
+  "title": "Estados descartam reduzir o ICMS dos combustíveis",
+  "text": "Comsefaz se manifesta após a isenção federal de PIS/Cofins sobre o diesel.",
+  "url": "https://tribunadejundiai.com.br/economia/icms-combustiveis-nao-sera-reduzido-o-que-muda-no-seu-bolso/",
+  "day": 17
+ },
+ {
+  "date": "2026-03",
+  "type": "petrobras",
+  "title": "Petrobras sobe o diesel em R$ 0,38/L e adere à subvenção",
+  "text": "Diesel A a R$ 3,65/L para as distribuidoras a partir de 14/3, no programa da MP 1.340 (12/3).",
+  "url": "https://www.novacana.com/noticias/petrobras-sobe-preco-diesel-refinarias-r-0-38-litro-130326",
+  "day": 13
+ },
+ {
+  "date": "2026-03",
+  "type": "etanol",
+  "title": "CNPE cancela reunião sobre o B16",
+  "text": "A mistura de 16% de biodiesel, prevista para 1º/3 na Lei do Combustível do Futuro, depende de decisão do conselho.",
+  "url": "https://www.cnnbrasil.com.br/agro/cnpe-cancela-reuniao-sobre-biodiesel/",
+  "day": 12
+ },
+ {
+  "date": "2026-03",
+  "type": "guerra",
+  "title": "Guerra no Irã: Brent passa de US$ 80 com o fechamento de Ormuz",
+  "text": "Primeira vez acima desse patamar desde janeiro de 2025; o conflito começou em 28/2.",
+  "url": "https://www.brasilagro.com.br/conteudo/petroleo-fecha-no-maior-valor-em-14-meses.html",
+  "day": 3
+ },
+ {
+  "date": "2008-09",
+  "type": "crise",
+  "title": "Crise financeira global",
+  "text": "Colapso do Lehman Brothers; o barril de petróleo despenca nos meses seguintes."
+ },
+ {
+  "date": "2015-02",
+  "type": "politica",
+  "title": "Alta de PIS/Cofins e Cide",
+  "text": "Governo eleva tributos federais sobre gasolina e diesel."
+ },
+ {
+  "date": "2017-07",
+  "type": "petrobras",
+  "title": "Reajustes mais frequentes na Petrobras",
+  "text": "Nova política permite revisões de preço quase diárias nas refinarias."
+ },
+ {
+  "date": "2018-05",
+  "type": "greve",
+  "title": "Greve dos caminhoneiros",
+  "text": "Dez dias de bloqueios."
+ },
+ {
+  "date": "2020-03",
+  "type": "pandemia",
+  "title": "Pandemia",
+  "text": "A demanda despenca."
+ },
+ {
+  "date": "2022-02",
+  "type": "guerra",
+  "title": "Guerra na Ucrânia",
+  "text": "Barril a US$ 127."
+ },
+ {
+  "date": "2022-06",
+  "type": "politica",
+  "title": "Teto de ICMS sobre combustíveis",
+  "text": "Lei Complementar 194 limita o ICMS cobrado sobre combustíveis."
+ },
+ {
+  "date": "2023-03",
+  "type": "politica",
+  "title": "Volta o PIS/Cofins na gasolina",
+  "text": "Fim da desoneração federal sobre a gasolina."
+ },
+ {
+  "date": "2023-05",
+  "type": "petrobras",
+  "title": "Petrobras deixa a paridade de importação",
+  "text": "Estatal abandona o PPI e adota nova estratégia comercial de preços."
+ },
+ {
+  "date": "2025-08",
+  "type": "etanol",
+  "title": "Gasolina E30",
+  "text": "Mistura obrigatória de etanol na gasolina sobe para 30%."
+ }
 ]
