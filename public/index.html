@@ -115,6 +115,45 @@
       </article>
     </div>
 
+    <div class="row r4">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Combustível contra a inflação</h3><p class="sub" id="s-infl"></p></div>
+          <div class="legend" id="legend-infl"></div>
+        </div>
+        <div id="chart-infl" class="chart" role="img" aria-label="Preço dos combustíveis e IPCA, base 100 no início da série"></div>
+        <p class="note" id="n-infl"></p>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Maiores altas e quedas</h3><p class="sub" id="s-mov"></p></div>
+          <div class="seg sm" id="mv-win" role="group" aria-label="Período">
+            <button data-w="1">1 mês</button><button data-w="12">12 meses</button><button data-w="60">5 anos</button>
+          </div>
+        </div>
+        <div id="chart-mov" class="chart" role="img" aria-label="Estados com maiores altas e quedas de preço no período"></div>
+      </article>
+    </div>
+
+    <div class="row r5">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Comparar estados</h3><p class="sub" id="s-cmp"></p></div>
+          <div class="cmp-ctl"><div class="seg sm" id="cmp-mode" role="group" aria-label="Modo"><button data-cd="0">R$/litro</button><button data-cd="1">vs. Brasil</button></div><div id="cmp-chips" class="cchips"></div><select id="cmp-add" aria-label="Adicionar estado à comparação"></select></div>
+        </div>
+        <div class="legend" id="legend-cmp"></div>
+        <div id="chart-cmp" class="chart" role="img" aria-label="Preço por estado escolhido, comparado à média do Brasil"></div>
+      </article>
+      <article class="card" id="card-band">
+        <div class="chead">
+          <div><h3>Bandeira branca vs. bandeiradas</h3><p class="sub" id="s-band"></p></div>
+          <div class="legend" id="legend-band"></div>
+        </div>
+        <div id="chart-band" class="chart" role="img" aria-label="Preço em postos de bandeira branca e de bandeiradas"></div>
+        <p class="note" id="n-band"></p>
+      </article>
+    </div>
+
     <article class="card wide" id="resumo">
       <div class="chead">
         <div>

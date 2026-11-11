@@ -2,7 +2,7 @@
 
 Dashboard interativo (HTML + D3, sem build, sem Power BI) com a série histórica de preços de gasolina, etanol e diesel da ANP (2004–2026).
 
-**Painéis:** contador de coletas · KPIs por estado · **mapa do Brasil** (gasolina, etanol, diesel ou razão etanol/gasolina) · **ranking de municípios** · **preço real (IPCA)** · linha do tempo com eventos e governos · halteres por região · variação anual · regra dos 70% por estado · mapa de calor etanol/gasolina (27 UFs × anos) · feed de notícias · linha do tempo com play. O estado do painel fica na URL (`#uf=SP&fuel=etanol&m=2022-06&real=1&map=ratio`).
+**Painéis:** contador de coletas · KPIs por estado · **mapa do Brasil** (gasolina, etanol, diesel ou razão etanol/gasolina) · **ranking de municípios** · **preço real (IPCA)** · linha do tempo com eventos e governos · halteres por região · variação anual · regra dos 70% por estado · mapa de calor etanol/gasolina (27 UFs × anos) · **combustível vs. inflação (base 100)** · **maiores altas e quedas** por estado (1 mês, 12 meses, 5 anos) · **comparar até 4 estados** (R$/litro ou % vs. Brasil) · **bandeira branca vs. bandeiradas** · resumo em texto e download de CSV · feed de notícias · linha do tempo com play. O estado do painel fica na URL (`#uf=SP&fuel=etanol&m=2022-06&real=1&map=ratio`).
 
 ## Estrutura
 ```
@@ -12,11 +12,13 @@ public/            site estático (é o que a Vercel publica)
   data/events.json   notícias/marcos, com data, tipo e link da fonte (curado à mão; datas após o fim da série entram só no feed)
   data/meta.json     { demo, coletas, fonte, atualizado }
   data/ipca.json     índice IPCA mensal (base do toggle Real)
+  data/bandeira.json preço médio de bandeira branca x bandeiradas (por UF/combustível/mês; opcional)
   data/brasil-uf.json  malha SVG dos 27 estados (@svg-maps/brazil, CC BY 4.0)
   data/municipios.json ranking: últimos 24 meses, top 300 municípios por coletas
 scripts/
   make_demo_data.py  gera dados SINTÉTICOS de demonstração
   build_data.py      gera os JSONs REAIS (séries + municípios) a partir dos CSVs da ANP
+  make_demo_bandeira.py  gera bandeira.json sintético (o real vem do build_data.py)
   fetch_ipca.py      baixa o IPCA oficial (SGS 433, Banco Central)
 vercel.json
 ```

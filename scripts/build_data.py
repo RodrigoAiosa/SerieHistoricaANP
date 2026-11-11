@@ -30,6 +30,7 @@ COLS = {  # nome normalizado -> campo interno
     "produto": "produto",
     "data da coleta": "data",
     "valor de venda": "venda",
+    "bandeira": "bandeira",
 }
 PRODUCTS = {  # trecho do nome normalizado -> chave
     "gasolina comum": "gasolina", "gasolina": "gasolina",
@@ -57,7 +58,7 @@ def main(raw_dir):
     files = sorted(Path(raw_dir).glob("*.csv"))
     if not files:
         sys.exit(f"Nenhum CSV em {raw_dir}")
-    parts, mparts, total = [], [], 0
+    parts, mparts, bparts, total = [], [], [], 0
     for f in files:
         try:
             df = pd.read_csv(f, sep=";", decimal=",", encoding="utf-8",
@@ -82,6 +83,10 @@ def main(raw_dir):
         total += len(df)                         # coletas = linhas efetivamente usadas pelo painel
         df["ym"] = df["data"].dt.strftime("%Y-%m")
         parts.append(df.groupby(["fuel", "uf", "ym"])["venda"].agg(["sum", "count"]).reset_index())
+        if "bandeira" in df.columns:  # bandeira branca x bandeiradas (por estado/mês)
+            bd = df.dropna(subset=["bandeira"]).copy()
+            bd["branca"] = bd["bandeira"].map(norm) == "branca"
+            bparts.append(bd.groupby(["fuel", "uf", "ym", "branca"])["venda"].agg(["sum", "count"]).reset_index())
         if "mun" in df.columns:
             mparts.append(df.groupby(["fuel", "uf", "mun", "ym"])["venda"].agg(["sum", "count"]).reset_index())
         print(f"{f.name}: {len(df):,} linhas úteis")
@@ -121,6 +126,21 @@ def main(raw_dir):
         (OUT / "municipios.json").write_text(json.dumps({"months": wm, "items": items},
             ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         print(f"municipios.json: {len(items)} municípios")
+    if bparts:  # bandeira.json: mês só vale com >= MIN_B coletas; buracos internos interpolados, pontas ficam vazias (null)
+        MIN_B = 3
+        bb = pd.concat(bparts).groupby(["fuel", "uf", "ym", "branca"]).sum().reset_index()
+        bout = {"months": months, "branca": {}, "bandeirada": {}}
+        for flag, key in ((True, "branca"), (False, "bandeirada")):
+            for fuel in ("gasolina", "etanol", "diesel"):
+                bout[key][fuel] = {}
+                sub = bb[(bb["fuel"] == fuel) & (bb["branca"] == flag)]
+                for uf in [s["uf"] for s in meta_states]:
+                    t = sub[sub["uf"] == uf].set_index("ym")
+                    v = (t["sum"] / t["count"]).where(t["count"] >= MIN_B).reindex(months)
+                    v = v.interpolate(limit_area="inside").round(3)
+                    bout[key][fuel][uf] = [None if pd.isna(x) else float(x) for x in v]
+        (OUT / "bandeira.json").write_text(json.dumps(bout, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print("bandeira.json: ok")
     (OUT / "meta.json").write_text(json.dumps({
         "demo": False, "coletas": int(total),
         "fonte": "ANP — Série histórica do levantamento de preços de combustíveis",

@@ -40,22 +40,23 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false };
   let D = null;           // dados processados
   let timer = null;
 
   /* ---------- carga ---------- */
+  const optional = fetch('data/bandeira.json').then(r => (r.ok ? r.json() : null)).catch(() => null);   // opcional: sem ele o card some
   Promise.all(['series', 'events', 'meta', 'brasil-uf', 'ipca', 'municipios'].map(n => fetch(`data/${n}.json`).then(r => {
     if (!r.ok) throw new Error(`${n}.json: ${r.status}`);
     return r.json();
-  }))).then(([series, events, meta, geo, ipca, mun]) => init(series, events, meta, geo, ipca, mun))
+  })).concat(optional)).then(([series, events, meta, geo, ipca, mun, band]) => init(series, events, meta, geo, ipca, mun, band))
     .catch(err => {
       document.querySelector('.layout').innerHTML =
         `<div class="card" style="grid-column:1/-1"><b>Não foi possível carregar os dados.</b><p class="sub">${err.message}</p></div>`;
       console.error(err);
     });
 
-  function init(series, events, meta, geo, ipca, mun) {
+  function init(series, events, meta, geo, ipca, mun, band) {
     const months = series.months, N = months.length;
     const states = series.states, ufs = states.map(s => s.uf);
     const byUf = Object.fromEntries(states.map(s => [s.uf, s]));
@@ -89,7 +90,7 @@
     for (const f of FUELS) { dataReal[f.k] = {}; for (const u of [...ufs, 'BR']) dataReal[f.k][u] = data[f.k][u].map((v, i) => v * defl[i]); }
     const munMonths = mun.months.map(m => months.indexOf(m));
 
-    D = { dataNom: data, dataReal, defl, ipca, geo, mun, munMonths, months, N, states, ufs, byUf, ratio, years, yearIdx, yearOf, monthOf, label, ym, evs, meta };
+    D = { band: band && band.months.length === months.length ? band : null, dataNom: data, dataReal, defl, ipca, geo, mun, munMonths, months, N, states, ufs, byUf, ratio, years, yearIdx, yearOf, monthOf, label, ym, evs, meta };
     S.idx = N - 1;
 
     readHash();
@@ -118,6 +119,9 @@
     if (fuel && (fuel === 'all' || FUEL[fuel])) S.fuel = fuel;
     if (m && D.months.includes(m)) S.idx = D.months.indexOf(m);
     S.real = p.get('real') === '1';
+    const cmp = p.get('cmp'); if (cmp != null) S.cmp = cmp.split(',').filter(u => D.byUf[u]).slice(0, 4);
+    S.cd = p.get('cd') === '1';
+    const mv = +p.get('mv'); if ([1, 12, 60].includes(mv)) S.mv = mv;
     const mm = p.get('map'); if (['gasolina', 'etanol', 'diesel', 'ratio'].includes(mm)) S.mapMetric = mm;
   }
   function writeHash() {
@@ -127,6 +131,9 @@
     if (S.idx !== D.N - 1) p.set('m', D.months[S.idx]);
     if (S.real) p.set('real', '1');
     if (S.mapMetric) p.set('map', S.mapMetric);
+    if (S.cmp.join() !== 'SP,RJ,AM') p.set('cmp', S.cmp.join(','));
+    if (S.mv !== 12) p.set('mv', S.mv);
+    if (S.cd) p.set('cd', '1');
     const h = p.toString();
     history.replaceState(null, '', h ? `#${h}` : location.pathname + location.search);
   }
@@ -156,6 +163,10 @@
     $('#btn-copy').onclick = copyResumo;
     $('#btn-csv-sel').onclick = () => downloadCsv(false);
     $('#btn-csv-all').onclick = () => downloadCsv(true);
+    document.querySelectorAll('#mv-win button').forEach(b => b.onclick = () => { S.mv = +b.dataset.w; syncControls(); writeHash(); drawMovers(); });
+    $('#cmp-add').onchange = (e) => { const u = e.target.value; if (u && S.cmp.length < 4 && !S.cmp.includes(u)) S.cmp.push(u); cmpControls(); writeHash(); drawCompare(); };
+    document.querySelectorAll('#cmp-mode button').forEach(b => b.onclick = () => { S.cd = b.dataset.cd === '1'; syncControls(); writeHash(); drawCompare(); });
+    if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
     $('#src').textContent = `Fonte: ${D.meta.fonte || 'ANP'}`;
@@ -172,6 +183,9 @@
     const chip = $('#chip-uf');
     chip.hidden = S.uf === 'BR';
     chip.textContent = `${S.uf} ✕`;
+    document.querySelectorAll('#mv-win button').forEach(b => b.classList.toggle('on', +b.dataset.w === S.mv));
+    document.querySelectorAll('#cmp-mode button').forEach(b => b.classList.toggle('on', (b.dataset.cd === '1') === S.cd));
+    cmpControls();
   }
   function setUf(uf) { S.uf = uf; syncControls(); renderAll(true); }
   function setIdx(i, fromSlider) {
@@ -205,11 +219,165 @@
     drawScatter();
     drawMap();
     drawMunicipios();
+    drawInflation();
+    drawMovers();
+    drawCompare();
+    drawBandeira();
     if (full || !S._barsDrawn) { drawBars(); }
     else markBars();
     if (full || !S._heatDrawn) drawHeat(); else markHeat();
   }
 
+
+
+  /* ---------- novos gráficos: inflação, altas/quedas, comparar, bandeira ---------- */
+  const focusFuel = () => (S.fuel === 'all' ? 'gasolina' : S.fuel);
+  const CMP_COLORS = ['#C0392B', '#6A4C93', '#00838F', '#8A5A00'];
+  const escH = (t) => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  // eixo X por ano (índices dos meses) — adapta a densidade à largura
+  function yearAxis(svg, x, W, H, m) {
+    const gx = svg.append('g').attr('class', 'axis'), step = W > 620 ? 2 : 4;
+    D.years.forEach((yr, k) => { if (k % step === 0) gx.append('text').attr('x', x(D.yearIdx[yr][0])).attr('y', H - 8).attr('text-anchor', 'middle').text(yr); });
+  }
+  // gráfico de linhas genérico: lines = [{n,c,dash,w,v:[...]}]; v pode ter null
+  function lineChart(host, lines, opt) {
+    const H = opt.H || 260, i = S.idx, m = { l: 46, r: 12, t: 12, b: 24 };
+    const { svg, W } = mount(host, H);
+    const vals = lines.flatMap(l => l.v.filter(v => v != null && !isNaN(v)));
+    if (!vals.length) { host.innerHTML = '<div class="empty">Sem dados suficientes para esta seleção.</div>'; return; }
+    const x = d3.scaleLinear([0, D.N - 1], [m.l, W - m.r]);
+    const y = d3.scaleLinear([Math.min(opt.min ?? Infinity, d3.min(vals)), d3.max(vals)], [H - m.b, m.t]).nice(5);
+    const gy = svg.append('g').attr('class', 'axis');
+    for (const t of y.ticks(5)) {
+      gy.append('line').attr('class', 'gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t));
+      gy.append('text').attr('x', m.l - 6).attr('y', y(t) + 3).attr('text-anchor', 'end').text(opt.tick(t));
+    }
+    if (opt.ref != null) svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(opt.ref)).attr('y2', y(opt.ref)).attr('stroke', '#bdbdbd').attr('stroke-dasharray', '2 3');
+    yearAxis(svg, x, W, H, m);
+    for (const l of lines)
+      svg.append('path').datum(l.v).attr('fill', 'none').attr('stroke', l.c).attr('stroke-width', l.w || 1.7).attr('stroke-linejoin', 'round')
+        .attr('stroke-dasharray', l.dash || null).attr('d', d3.line().defined(v => v != null && !isNaN(v)).x((_, k) => x(k)).y(v => y(v)));
+    const cur = svg.append('g');
+    cur.append('line').attr('x1', x(i)).attr('x2', x(i)).attr('y1', m.t).attr('y2', H - m.b).attr('stroke', '#8A5A00');
+    for (const l of lines) if (l.v[i] != null) cur.append('circle').attr('cx', x(i)).attr('cy', y(l.v[i])).attr('r', 3.8).attr('fill', l.c).attr('stroke', '#fff').attr('stroke-width', 1.4);
+    const guide = svg.append('line').attr('y1', m.t).attr('y2', H - m.b).attr('stroke', '#bbb').attr('stroke-dasharray', '3 3').style('display', 'none');
+    const kAt = (e) => Math.max(0, Math.min(D.N - 1, Math.round(x.invert(d3.pointer(e)[0]))));
+    svg.append('rect').attr('class', 'hover-rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.b - m.t)
+      .on('mousemove', (e) => {
+        const k = kAt(e); guide.style('display', null).attr('x1', x(k)).attr('x2', x(k));
+        const rows = lines.filter(l => l.v[k] != null).sort((a, b) => b.v[k] - a.v[k]);
+        showTip(e, `<b>${D.label(k)}</b><br>` + rows.map(l => `<span style="color:#cfd8dc">●</span> ${escH(l.n)} <span class="mono">${opt.tip(l.v[k])}</span>`).join('<br>'));
+      })
+      .on('mouseleave', () => { guide.style('display', 'none'); hideTip(); })
+      .on('click', (e) => { stop(); setIdx(kAt(e)); });
+  }
+  const legendLines = (lines, fmt) => lines.map(l =>
+    `<span class="it"><i class="ln${l.dash ? ' dash' : ''}" style="border-color:${l.c}"></i>${escH(l.n)}${l.v[S.idx] != null ? ` <span class="v">${fmt(l.v[S.idx])}</span>` : ''}</span>`).join('');
+
+  /* 1 · combustível contra a inflação (base 100 no 1º mês) */
+  function drawInflation() {
+    const fuels = shown(), i = S.idx;
+    const base = (a) => a.map(v => v / a[0] * 100);
+    const ip = base(D.ipca.indice);
+    const lines = fuels.map(f => ({ n: f.n, c: f.c, v: base(D.dataNom[f.k][S.uf]) }))
+      .concat({ n: 'IPCA (inflação)', c: '#5B666E', dash: '5 3', w: 2, v: ip });
+    $('#s-infl').textContent = `${ufName(S.uf)} · base 100 = ${D.label(0)} · valores nominais`;
+    $('#legend-infl').innerHTML = legendLines(lines, v => f0.format(v));
+    lineChart($('#chart-infl'), lines, { H: 290, min: 100, ref: 100, tick: (t) => f0.format(t), tip: (v) => `${f0.format(v)} <small>(${pctTxt(v - 100, 0)})</small>` });
+    const ipg = ip[i] - 100;
+    $('#n-infl').innerHTML = (i === 0 ? 'Escolha um mês depois do início para comparar.' : lines.slice(0, -1).map(l => {
+      const g = l.v[i] - 100, d = g - ipg;
+      return `<b style="color:${FUEL[fuels.find(f => f.n === l.n).k].c}">${l.n}</b> ${pctTxt(g, 0)} · IPCA ${pctTxt(ipg, 0)} → <span class="${d > 0 ? 'up' : 'dn'}">${f0.format(Math.abs(d))} p.p. ${d > 0 ? 'acima' : 'abaixo'} da inflação</span>`;
+    }).join('<br>')) + (D.ipca.aproximado ? '<br><span class="sub">IPCA aproximado — rode scripts/fetch_ipca.py para o oficial.</span>' : '');
+  }
+
+  /* 4 · maiores altas e quedas entre estados */
+  function drawMovers() {
+    const host = $('#chart-mov'), f = FUEL[focusFuel()], i = S.idx, w = Math.min(S.mv, i);
+    $('#s-mov').textContent = `${f.n} · ${w ? `variação em ${w} ${w === 1 ? 'mês' : 'meses'} até ${D.label(i)}` : 'escolha um mês depois do início'} · ${S.real ? 'real' : 'nominal'}${S.fuel === 'all' ? ' · filtre o combustível acima' : ''}`;
+    if (!w) { host.innerHTML = '<div class="empty">Mova a linha do tempo para um mês posterior a ' + D.label(0) + '.</div>'; return; }
+    const rows = D.ufs.map(u => { const a = DT()[f.k][u]; return { u, p: (a[i] / a[i - w] - 1) * 100, v: a[i] }; }).sort((a, b) => b.p - a.p);
+    const K = 7, list = rows.length > 2 * K ? [...rows.slice(0, K), { gap: true }, ...rows.slice(-K)] : rows;
+    const rh = 21, H = list.reduce((h, r) => h + (r.gap ? 16 : rh), 0) + 14;
+    const { svg, W } = mount(host, H);
+    const m = { l: 140, r: 50 };
+    const ext = d3.extent(list.filter(r => !r.gap).map(r => r.p).concat(0));
+    const x = d3.scaleLinear(ext, [m.l + (ext[0] < 0 ? 46 : 0), W - m.r]).nice();
+    svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 4).attr('y2', H - 4).attr('stroke', '#bdbdbd');
+    let yy = 6;
+    for (const r of list) {
+      if (r.gap) { svg.append('text').attr('x', m.l).attr('y', yy + 11).style('font', '400 10px var(--mono)').attr('fill', '#999').text('···'); yy += 16; continue; }
+      const g = svg.append('g').attr('class', 'mov-row').attr('transform', `translate(0,${yy})`);
+      const up = r.p >= 0, x0 = x(Math.min(0, r.p)), bw = Math.max(1, Math.abs(x(r.p) - x(0)));
+      g.append('text').attr('x', m.l - 8).attr('y', rh / 2 + 3).attr('text-anchor', 'end').style('font', `${r.u === S.uf ? 700 : 400} 11px var(--sans, Inter)`).attr('fill', '#1F2A33').text(`${r.u} · ${D.byUf[r.u].nome}`);
+      g.append('rect').attr('class', 'bar').attr('x', x0).attr('y', 3).attr('width', bw).attr('height', rh - 6).attr('rx', 2).attr('fill', up ? '#C0392B' : '#2E7D4F').attr('opacity', .85)
+        .attr('stroke', r.u === S.uf ? '#1F2A33' : 'none').attr('stroke-width', 1.6);
+      g.append('text').attr('x', up ? x(r.p) + 5 : x(r.p) - 5).attr('y', rh / 2 + 3).attr('text-anchor', up ? 'start' : 'end').style('font', '500 10.5px var(--mono)').attr('fill', '#1F2A33').text(pctTxt(r.p));
+      g.append('rect').attr('class', 'hover-rect').attr('x', 0).attr('width', W).attr('height', rh)
+        .on('mousemove', (e) => showTip(e, `<b>${D.byUf[r.u].nome}</b><br>${f.n} <span class="mono">${R$(r.v)}</span><br>${w} ${w === 1 ? 'mês' : 'meses'}: <span class="mono">${pctTxt(r.p)}</span>`))
+        .on('mouseleave', hideTip).on('click', () => setUf(r.u));
+      yy += rh;
+    }
+  }
+
+  /* 3 · comparar estados */
+  function cmpControls() {
+    const chips = $('#cmp-chips'), sel = $('#cmp-add'); if (!chips) return;
+    chips.innerHTML = '';
+    S.cmp.forEach((u, k) => {
+      const b = el('button', 'cchip', `<i style="background:${CMP_COLORS[k]}"></i>${u} ✕`);
+      b.type = 'button'; b.title = `Remover ${ufName(u)}`;
+      b.onclick = () => { S.cmp.splice(k, 1); cmpControls(); writeHash(); drawCompare(); };
+      chips.append(b);
+    });
+    sel.innerHTML = '';
+    const full = S.cmp.length >= 4;
+    sel.append(new Option(full ? 'Máximo de 4 estados' : '+ Adicionar estado', ''));
+    for (const s of D.states) if (!S.cmp.includes(s.uf)) sel.append(new Option(`${s.uf} — ${s.nome}`, s.uf));
+    sel.disabled = full; sel.value = '';
+  }
+  function drawCompare() {
+    const f = FUEL[focusFuel()];
+    const us = S.cmp.filter(u => D.byUf[u]), BRv = DT()[f.k].BR;
+    let lines, opt;
+    if (S.cd) {   // diferença percentual contra a média do Brasil (separa estados com preços parecidos)
+      lines = us.map((u, k) => ({ n: ufName(u), c: CMP_COLORS[k], v: DT()[f.k][u].map((v, j) => (v / BRv[j] - 1) * 100) }));
+      opt = { H: 270, ref: 0, tick: (t) => pctTxt(t, 0), tip: (v) => pctTxt(v) };
+    } else {
+      lines = [{ n: 'Brasil (média)', c: '#8A949B', dash: '4 3', w: 1.8, v: BRv }]
+        .concat(us.map((u, k) => ({ n: ufName(u), c: CMP_COLORS[k], v: DT()[f.k][u] })));
+      opt = { H: 270, tick: (t) => f2.format(t), tip: R$ };
+    }
+    $('#s-cmp').textContent = `${f.n} · ${S.cd ? '% acima (+) ou abaixo (−) da média do Brasil' : 'R$/litro'} · ${S.real ? 'valores reais' : 'valores nominais'}${S.fuel === 'all' ? ' · filtre o combustível acima' : ''}`;
+    $('#legend-cmp').innerHTML = legendLines(lines, S.cd ? (v) => pctTxt(v) : R$);
+    if (!lines.length) { $('#chart-cmp').innerHTML = '<div class="empty">Adicione estados para comparar com a média do Brasil.</div>'; return; }
+    lineChart($('#chart-cmp'), lines, opt);
+    if (!us.length) $('#chart-cmp').insertAdjacentHTML('beforeend', '<div class="empty">Adicione estados para comparar com a média do Brasil.</div>');
+  }
+
+  /* 8 · bandeira branca x bandeiradas */
+  function bandSeries(kind, fuel, uf) {
+    const B = D.band, get = (u, k) => B[kind][fuel][u]?.[k];
+    return D.months.map((_, k) => {
+      const v = uf === 'BR' ? d3.mean(D.ufs, u => get(u, k)) : get(uf, k);
+      return v == null || isNaN(v) ? null : v * (S.real ? D.defl[k] : 1);
+    });
+  }
+  function drawBandeira() {
+    if (!D.band) return;
+    const f = FUEL[focusFuel()], i = S.idx;
+    const br = bandSeries('branca', f.k, S.uf), bd = bandSeries('bandeirada', f.k, S.uf);
+    const lines = [{ n: 'Bandeiradas', c: f.c, v: bd }, { n: 'Bandeira branca', c: f.c, dash: '5 3', v: br }];
+    $('#s-band').textContent = `${f.n} · ${ufName(S.uf)} · ${S.real ? 'real' : 'nominal'}${S.fuel === 'all' ? ' · filtre o combustível acima' : ''}`;
+    $('#legend-band').innerHTML = legendLines(lines, R$);
+    lineChart($('#chart-band'), lines, { H: 240, tick: (t) => f2.format(t), tip: R$ });
+    const gap = (k) => (br[k] != null && bd[k] != null ? (br[k] / bd[k] - 1) * 100 : null);
+    const g = gap(i), all = D.months.map((_, k) => gap(k)).filter(v => v != null);
+    const avg = all.length ? d3.mean(all) : null;
+    $('#n-band').innerHTML = g == null ? 'Sem dados de bandeira branca para este mês.'
+      : `Em ${D.label(i)}, a bandeira branca estava <span class="${g < 0 ? 'dn' : 'up'}">${f1.format(Math.abs(g))}% ${g < 0 ? 'mais barata' : 'mais cara'}</span> (${R$(br[i] - bd[i] < 0 ? bd[i] - br[i] : br[i] - bd[i])}/litro de diferença).`
+        + (avg != null ? ` Média da série: ${pctTxt(avg)}.` : '');
+  }
 
   /* ---------- resumo em texto + CSV ---------- */
   function resumoData() {
@@ -231,6 +399,12 @@
       t += `. Máxima da série: ${R$(mx)} (${D.label(imx)}); mínima: ${R$(mn)} (${D.label(imn)}). Desde ${D.label(0)}, ${acc >= 0 ? 'alta' : 'queda'} de ${nf(0).format(Math.abs(acc))}%.`;
       blocks.push(t);
     }
+    // contra a inflação (valores nominais; IPCA acumulado desde o 1º mês)
+    const ipg = (D.ipca.indice[i] / D.ipca.indice[0] - 1) * 100;
+    const inflacao = i === 0 ? '' : `Contra a inflação: o IPCA acumulou ${pctTxt(ipg, 0)} desde ${D.label(0)}. ` + shown().map(f => {
+      const g = (D.dataNom[f.k][S.uf][i] / D.dataNom[f.k][S.uf][0] - 1) * 100, d = g - ipg;
+      return `${f.n} ${pctTxt(g, 0)} (${f0.format(Math.abs(d))} p.p. ${d > 0 ? 'acima' : 'abaixo'})`;
+    }).join('; ') + '.' + (D.ipca.aproximado ? ' IPCA aproximado.' : '');
     const r = rat()[i] * 100, ok = r <= THRESH * 100;
     const regra = `Regra dos 70%: em ${when} ${where}, o etanol custava ${f1.format(r)}% do preço da gasolina — ${ok ? 'compensava abastecer com etanol' : 'não compensava, pois ficou acima de 70%'}.`;
     // ranking de estados (gasolina, mês selecionado)
@@ -239,7 +413,7 @@
       (S.uf !== 'BR' ? ` ${ufName(S.uf)} ocupa a ${rk.findIndex(o => o.u === S.uf) + 1}ª posição entre 27.` : '');
     // fatos recentes (até o mês selecionado)
     const fatos = D.evs.filter(e => e.i <= i && !e.after).slice(-3).reverse().map(e => `${e.title} (${MESES[+e.date.slice(5) - 1]}/${e.date.slice(0, 4)})`);
-    return { where, when, kind, blocks, regra, ranking, fatos };
+    return { where, when, kind, blocks, inflacao, regra, ranking, fatos };
   }
   function renderResumo() {
     const host = $('#resumo-txt'); if (!host) return;
@@ -249,6 +423,7 @@
     host.append(el('h4', null, `Panorama · ${r.when}`));
     host.append(el('p', null, `Preços ${r.where}, ${r.kind}.`));
     for (const b of r.blocks) host.append(el('p', null, b.replace(/&/g, '&amp;').replace(/</g, '&lt;')));
+    if (r.inflacao) { host.append(el('h4', null, 'Combustível e inflação')); host.append(el('p', null, r.inflacao)); }
     host.append(el('h4', null, 'Etanol ou gasolina?'));
     host.append(el('p', null, r.regra));
     host.append(el('h4', null, 'Entre os estados'));
@@ -263,7 +438,7 @@
     const r = resumoData();
     const L = [`RESUMO · ${r.when} · ${r.where}`, `(${r.kind})`, ''];
     if (D.meta.demo) L.push('ATENÇÃO: dados de demonstração (sintéticos).', '');
-    L.push(...r.blocks, '', r.regra, '', r.ranking);
+    L.push(...r.blocks, '', ...(r.inflacao ? [r.inflacao, ''] : []), r.regra, '', r.ranking);
     if (r.fatos.length) L.push('', 'Fatos recentes:', ...r.fatos.map(t => `- ${t}`));
     L.push('', `Fonte: ${D.meta.fonte || 'ANP'}.`);
     return L.join('\n');
