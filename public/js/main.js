@@ -40,7 +40,7 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false, cm: 'var', cp: 0 };
   let D = null;           // dados processados
   let timer = null;
 
@@ -121,6 +121,8 @@
     S.real = p.get('real') === '1';
     const cmp = p.get('cmp'); if (cmp != null) S.cmp = cmp.split(',').filter(u => D.byUf[u]).slice(0, 4);
     S.cd = p.get('cd') === '1';
+    S.cm = p.get('cm') === 'lvl' ? 'lvl' : 'var';
+    const cp = +p.get('cp'); S.cp = [1, 2].includes(cp) ? cp : 0;
     const mv = +p.get('mv'); if ([1, 12, 60].includes(mv)) S.mv = mv;
     const mm = p.get('map'); if (['gasolina', 'etanol', 'diesel', 'ratio'].includes(mm)) S.mapMetric = mm;
   }
@@ -134,6 +136,8 @@
     if (S.cmp.join() !== 'SP,RJ,AM') p.set('cmp', S.cmp.join(','));
     if (S.mv !== 12) p.set('mv', S.mv);
     if (S.cd) p.set('cd', '1');
+    if (S.cm !== 'var') p.set('cm', S.cm);
+    if (S.cp) p.set('cp', S.cp);
     const h = p.toString();
     history.replaceState(null, '', h ? `#${h}` : location.pathname + location.search);
   }
@@ -166,6 +170,8 @@
     document.querySelectorAll('#mv-win button').forEach(b => b.onclick = () => { S.mv = +b.dataset.w; syncControls(); writeHash(); drawMovers(); });
     $('#cmp-add').onchange = (e) => { const u = e.target.value; if (u && S.cmp.length < 4 && !S.cmp.includes(u)) S.cmp.push(u); cmpControls(); writeHash(); drawCompare(); };
     document.querySelectorAll('#cmp-mode button').forEach(b => b.onclick = () => { S.cd = b.dataset.cd === '1'; syncControls(); writeHash(); drawCompare(); });
+    document.querySelectorAll('.cm-mode button').forEach(b => b.onclick = () => { S.cm = b.dataset.cm; syncControls(); writeHash(); drawCorr(); });
+    document.querySelectorAll('#cp-pair button').forEach(b => b.onclick = () => { S.cp = +b.dataset.p; syncControls(); writeHash(); drawCorr(); });
     buildGuide();
     if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
@@ -186,6 +192,8 @@
     chip.textContent = `${S.uf} ✕`;
     document.querySelectorAll('#mv-win button').forEach(b => b.classList.toggle('on', +b.dataset.w === S.mv));
     document.querySelectorAll('#cmp-mode button').forEach(b => b.classList.toggle('on', (b.dataset.cd === '1') === S.cd));
+    document.querySelectorAll('.cm-mode button').forEach(b => b.classList.toggle('on', b.dataset.cm === S.cm));
+    document.querySelectorAll('#cp-pair button').forEach(b => b.classList.toggle('on', +b.dataset.p === S.cp));
     cmpControls();
   }
   function setUf(uf) { S.uf = uf; syncControls(); renderAll(true); }
@@ -224,6 +232,7 @@
     drawMovers();
     drawCompare();
     drawBandeira();
+    drawCorr();
     if (full || !S._barsDrawn) { drawBars(); }
     else markBars();
     if (full || !S._heatDrawn) drawHeat(); else markHeat();
@@ -247,9 +256,9 @@
     const vals = lines.flatMap(l => l.v.filter(v => v != null && !isNaN(v)));
     if (!vals.length) { host.innerHTML = '<div class="empty">Sem dados suficientes para esta seleção.</div>'; return; }
     const x = d3.scaleLinear([0, D.N - 1], [m.l, W - m.r]);
-    const y = d3.scaleLinear([Math.min(opt.min ?? Infinity, d3.min(vals)), d3.max(vals)], [H - m.b, m.t]).nice(5);
+    const y = opt.dom ? d3.scaleLinear(opt.dom, [H - m.b, m.t]) : d3.scaleLinear([Math.min(opt.min ?? Infinity, d3.min(vals)), d3.max(vals)], [H - m.b, m.t]).nice(5);
     const gy = svg.append('g').attr('class', 'axis');
-    for (const t of y.ticks(5)) {
+    for (const t of y.ticks(opt.dom ? 4 : 5)) {
       gy.append('line').attr('class', 'gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t));
       gy.append('text').attr('x', m.l - 6).attr('y', y(t) + 3).attr('text-anchor', 'end').text(opt.tick(t));
     }
@@ -411,6 +420,12 @@
       ['Bandeira branca vs. bandeiradas', '#chart-band', 'Preço médio em postos sem bandeira (brancos) contra postos de distribuidoras, e quanto o branco é mais barato ou mais caro no mês.'],
       ['Mapa de calor etanol ÷ gasolina', '#chart-heat', 'Um quadro estado × ano com a razão etanol ÷ gasolina. Tons de verde = o etanol compensou naquele ano e lugar; tons quentes = não compensou.'],
     ]],
+    ['Correlações', [
+      ['Matriz de correlação', '#chart-cmat', 'Mede o quanto gasolina, etanol, diesel e IPCA andam juntos (r de −1 a +1; azul = juntos, vermelho = em sentidos opostos). Use “Variações” (mudança mês a mês), que mostra a relação real; “Níveis” fica inflado porque tudo sobe com o tempo. Clique numa célula para ver o par na dispersão.'],
+      ['Um combustível explica o outro?', '#chart-cscat', 'Cada ponto é um mês, com a reta de tendência, r, R² e quanto um combustível varia quando o outro varia 1%. Pontos claros são anos antigos; o círculo dourado é o mês selecionado.'],
+      ['A relação mudou ao longo do tempo?', '#chart-croll', 'Correlação das variações mensais numa janela móvel de 36 meses para cada par. Quedas bruscas indicam períodos em que a ligação entre os preços se rompeu.'],
+      ['Quem acompanha o Brasil', '#chart-crank', 'Correlação de cada estado com a média nacional. Valores baixos indicam estados cujo preço se move mais por conta própria.'],
+    ]],
     ['Resumo e dados', [
       ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
       ['Fonte e avisos', '.foot', 'Dados da ANP (levantamento de preços de revenda). “Dados de demonstração” indica números sintéticos; “IPCA aproximado” indica que o índice oficial ainda não foi carregado.'],
@@ -430,6 +445,141 @@
       target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
     });
+  }
+
+
+  /* ---------- correlações ---------- */
+  const CVARS = [{ k: 'gasolina', n: 'Gasolina' }, { k: 'etanol', n: 'Etanol' }, { k: 'diesel', n: 'Diesel' }, { k: 'ipca', n: 'IPCA' }];
+  const CPAIRS = [['gasolina', 'etanol'], ['gasolina', 'diesel'], ['etanol', 'diesel']];
+  const CNAME = (k) => CVARS.find(v => v.k === k).n;
+  const pearson = (a, b) => {
+    const n = a.length; if (n < 3) return null;
+    const ma = d3.mean(a), mb = d3.mean(b); let sab = 0, saa = 0, sbb = 0;
+    for (let k = 0; k < n; k++) { const da = a[k] - ma, db = b[k] - mb; sab += da * db; saa += da * da; sbb += db * db; }
+    return saa && sbb ? sab / Math.sqrt(saa * sbb) : null;
+  };
+  const chg = (arr) => arr.map((v, k) => (k ? (v / arr[k - 1] - 1) * 100 : null));   // variação mensal em %
+  const cSer = (k, uf) => (k === 'ipca' ? D.ipca.indice : D.dataNom[k][uf]);          // sempre nominal
+  const cBase = (k, uf) => (S.cm === 'var' ? chg(cSer(k, uf)) : cSer(k, uf));
+  const cFrom = () => (S.cm === 'var' ? 1 : 0);
+  const cr = (v) => (v == null ? '—' : f2.format(v));
+  const cLabel = (r) => {
+    if (r == null) return 'sem dados';
+    const a = Math.abs(r), g = a < .2 ? 'muito fraca' : a < .4 ? 'fraca' : a < .6 ? 'moderada' : a < .8 ? 'forte' : 'muito forte';
+    return `${g}${a < .2 ? '' : r > 0 ? ' positiva' : ' negativa'}`;
+  };
+  const cMode = () => (S.cm === 'var' ? 'variações mensais (%)' : 'níveis de preço');
+  const cMinMsg = (host) => { host.innerHTML = '<div class="empty">Mova a linha do tempo para depois de ' + D.label(Math.min(D.N - 1, 12)) + ' — são necessários ao menos 12 meses.</div>'; };
+  const cCorr = (k1, k2, uf, i) => { const a = cBase(k1, uf), b = cBase(k2, uf), f = cFrom(); return pearson(a.slice(f, i + 1), b.slice(f, i + 1)); };
+
+  function drawCorr() { drawCorrMatrix(); drawCorrScatter(); drawCorrRolling(); drawCorrRank(); }
+
+  /* matriz 4×4 (gasolina, etanol, diesel, IPCA) */
+  function drawCorrMatrix() {
+    const host = $('#chart-cmat'), i = S.idx;
+    $('#s-cmat').textContent = `${ufName(S.uf)} · ${cMode()} · ${D.label(0)} até ${D.label(i)} · nominal`;
+    if (i < 12) { cMinMsg(host); $('#n-cmat').textContent = ''; return; }
+    const n = CVARS.length, lab = 62, W0 = Math.max(240, host.clientWidth), cell = Math.min(74, (W0 - lab - 6) / n), top = 26;
+    const { svg } = mount(host, top + n * cell + 6);
+    const col = d3.scaleLinear([-1, 0, 1], ['#C0392B', '#FFFFFF', '#1F4E79']).clamp(true);
+    const M = CVARS.map(a => CVARS.map(b => (a.k === b.k ? 1 : cCorr(a.k, b.k, S.uf, i))));
+    CVARS.forEach((v, c) => svg.append('text').attr('x', lab + c * cell + cell / 2).attr('y', 17).attr('text-anchor', 'middle').style('font', '500 11px var(--mono)').attr('fill', '#5B666E').text(v.n));
+    CVARS.forEach((v, r) => svg.append('text').attr('x', lab - 8).attr('y', top + r * cell + cell / 2 + 4).attr('text-anchor', 'end').style('font', '500 11px var(--mono)').attr('fill', '#5B666E').text(v.n));
+    CVARS.forEach((a, r) => CVARS.forEach((b, c) => {
+      const v = M[r][c], g = svg.append('g').style('cursor', CPAIRS.some(p => p.includes(a.k) && p.includes(b.k)) && a.k !== b.k ? 'pointer' : 'default');
+      g.append('rect').attr('x', lab + c * cell + 1).attr('y', top + r * cell + 1).attr('width', cell - 2).attr('height', cell - 2).attr('rx', 4).attr('fill', v == null ? '#eee' : col(v));
+      g.append('text').attr('x', lab + c * cell + cell / 2).attr('y', top + r * cell + cell / 2 + 4).attr('text-anchor', 'middle').style('font', '600 13px var(--mono)')
+        .attr('fill', v != null && Math.abs(v) > .55 ? '#fff' : '#1F2A33').text(cr(v));
+      g.on('mousemove', (e) => showTip(e, `<b>${a.n} × ${b.n}</b><br>r = <span class="mono">${cr(v)}</span> · ${cLabel(a.k === b.k ? 1 : v)}<br>${cMode()}`)).on('mouseleave', hideTip)
+        .on('click', () => { const k = CPAIRS.findIndex(p => p.includes(a.k) && p.includes(b.k)); if (a.k !== b.k && k >= 0) { S.cp = k; syncControls(); writeHash(); drawCorrScatter(); } });
+    }));
+    const off = []; CVARS.forEach((a, r) => CVARS.forEach((b, c) => { if (c > r && M[r][c] != null) off.push({ a, b, v: M[r][c] }); }));
+    off.sort((x, y) => y.v - x.v);
+    const hi = off[0], lo = off.at(-1);
+    $('#n-cmat').innerHTML = `Mais ligados: <b>${hi.a.n} × ${hi.b.n}</b> (r = ${cr(hi.v)}, ${cLabel(hi.v)}). Menos ligados: <b>${lo.a.n} × ${lo.b.n}</b> (r = ${cr(lo.v)}, ${cLabel(lo.v)}).`
+      + (S.cm === 'lvl' ? '<br><span class="sub">Em níveis, quase tudo sobe junto com o tempo e a correlação fica inflada; as variações mensais mostram a relação de verdade.</span>' : '')
+      + (D.ipca.aproximado ? '<br><span class="sub">IPCA aproximado: correlações com ele são só indicativas.</span>' : '');
+  }
+
+  /* dispersão de um par com reta de regressão */
+  function drawCorrScatter() {
+    const host = $('#chart-cscat'), i = S.idx, [ka, kb] = CPAIRS[S.cp], f = cFrom();
+    $('#s-cscat').textContent = `${ufName(S.uf)} · ${CNAME(kb)} (eixo vertical) contra ${CNAME(ka)} (horizontal) · ${cMode()} · cada ponto é um mês`;
+    if (i < 12) { cMinMsg(host); $('#n-cscat').textContent = ''; return; }
+    const A = cBase(ka, S.uf), B = cBase(kb, S.uf);
+    const pts = []; for (let k = f; k <= i; k++) pts.push({ k, x: A[k], y: B[k] });
+    const H = 290, m = { l: 48, r: 14, t: 12, b: 34 };
+    const { svg, W } = mount(host, H);
+    const x = d3.scaleLinear(d3.extent(pts, p => p.x), [m.l, W - m.r]).nice(5), y = d3.scaleLinear(d3.extent(pts, p => p.y), [H - m.b, m.t]).nice(5);
+    const unit = S.cm === 'var' ? (v) => `${f0.format(v)}%` : (v) => f2.format(v);
+    const ax = svg.append('g').attr('class', 'axis');
+    for (const t of y.ticks(5)) { ax.append('line').attr('class', 'gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t)); ax.append('text').attr('x', m.l - 6).attr('y', y(t) + 3).attr('text-anchor', 'end').text(unit(t)); }
+    for (const t of x.ticks(6)) ax.append('text').attr('x', x(t)).attr('y', H - m.b + 15).attr('text-anchor', 'middle').text(unit(t));
+    ax.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 4).attr('text-anchor', 'middle').text(`${CNAME(ka)}${S.cm === 'var' ? ' · variação mensal' : ' · R$/litro'}`);
+    if (S.cm === 'var') { // eixos em zero
+      if (x.domain()[0] < 0) svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', m.t).attr('y2', H - m.b).attr('stroke', '#bdbdbd').attr('stroke-dasharray', '2 3');
+      if (y.domain()[0] < 0) svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', '#bdbdbd').attr('stroke-dasharray', '2 3');
+    }
+    const tcol = d3.scaleLinear([0, D.N - 1], ['#E3BE6B', '#1F2A33']);   // mais antigo = dourado claro, mais recente = escuro
+    svg.append('g').selectAll('circle').data(pts).join('circle').attr('cx', p => x(p.x)).attr('cy', p => y(p.y)).attr('r', 2.8).attr('fill', p => tcol(p.k)).attr('opacity', .78);
+    // regressão linear (mínimos quadrados)
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y), mx = d3.mean(xs), my = d3.mean(ys);
+    const sxx = d3.sum(xs, v => (v - mx) ** 2), sxy = d3.sum(pts, p => (p.x - mx) * (p.y - my));
+    const r = pearson(xs, ys);
+    if (sxx) { const b1 = sxy / sxx, b0 = my - b1 * mx, [x0, x1] = x.domain();
+      svg.append('line').attr('x1', x(x0)).attr('x2', x(x1)).attr('y1', y(b0 + b1 * x0)).attr('y2', y(b0 + b1 * x1)).attr('stroke', '#C0392B').attr('stroke-width', 2).attr('clip-path', null);
+      const cur = pts.at(-1); svg.append('circle').attr('cx', x(cur.x)).attr('cy', y(cur.y)).attr('r', 6).attr('fill', 'none').attr('stroke', '#B87D00').attr('stroke-width', 2.2);
+      $('#n-cscat').innerHTML = `<b>r = ${cr(r)}</b> · R² = ${cr(r * r)} · ${pts.length} meses — correlação <b>${cLabel(r)}</b>.`
+        + (S.cm === 'var' ? ` Em média, cada +1% na ${CNAME(ka).toLowerCase()} acompanha ${b1 >= 0 ? '+' : '−'}${f2.format(Math.abs(b1))}% no ${CNAME(kb).toLowerCase()} no mesmo mês.` : '')
+        + ' <span class="sub">Pontos claros = anos antigos; escuros = recentes; círculo dourado = mês selecionado.</span>';
+    }
+    const dl = d3.Delaunay.from(pts, p => x(p.x), p => y(p.y));
+    svg.append('rect').attr('class', 'hover-rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b)
+      .on('mousemove', (e) => { const [px, py] = d3.pointer(e), p = pts[dl.find(px, py)]; showTip(e, `<b>${D.label(p.k)}</b><br>${CNAME(ka)} <span class="mono">${S.cm === 'var' ? pctTxt(p.x) : R$(p.x)}</span><br>${CNAME(kb)} <span class="mono">${S.cm === 'var' ? pctTxt(p.y) : R$(p.y)}</span>`); })
+      .on('mouseleave', hideTip).on('click', (e) => { const [px, py] = d3.pointer(e); stop(); setIdx(pts[dl.find(px, py)].k); });
+  }
+
+  /* correlação móvel de 36 meses entre pares */
+  function drawCorrRolling() {
+    const W36 = 36, uf = S.uf, colors = ['#6A4C93', '#C0392B', '#00838F'];
+    const lines = CPAIRS.map(([a, b], q) => {
+      const ca = chg(D.dataNom[a][uf]), cb = chg(D.dataNom[b][uf]);
+      return { n: `${CNAME(a)} × ${CNAME(b)}`, c: colors[q], v: ca.map((_, k) => (k >= W36 ? pearson(ca.slice(k - W36 + 1, k + 1), cb.slice(k - W36 + 1, k + 1)) : null)) };
+    });
+    $('#s-croll').textContent = `${ufName(uf)} · correlação das variações mensais numa janela móvel de ${W36} meses`;
+    $('#legend-croll').innerHTML = legendLines(lines, cr);
+    lineChart($('#chart-croll'), lines, { H: 290, dom: [-1, 1], ref: 0, tick: (t) => f2.format(t), tip: cr });
+    const vs = lines.map(l => ({ n: l.n, v: l.v[S.idx] })).filter(o => o.v != null);
+    $('#n-croll').innerHTML = (vs.length ? `Em ${D.label(S.idx)}: ` + vs.map(o => `${o.n} <b>${cr(o.v)}</b> (${cLabel(o.v)})`).join(' · ') + '. ' : `Há dados só a partir de ${D.label(W36)}. `)
+      + '<span class="sub">Perto de +1: andam juntos · perto de 0: independentes · negativo: sentidos opostos. Quedas bruscas costumam coincidir com choques (greves, guerra, mudança de política).</span>';
+  }
+
+  /* correlação de cada estado com a média do Brasil (variações mensais do combustível) */
+  function drawCorrRank() {
+    const host = $('#chart-crank'), fk = focusFuel(), i = S.idx;
+    $('#s-crank').textContent = `${FUEL[fk].n} · variações mensais · cada estado contra a média do Brasil · até ${D.label(i)}`;
+    if (i < 12) { cMinMsg(host); $('#n-crank').textContent = ''; return; }
+    const br = chg(D.dataNom[fk].BR).slice(1, i + 1);
+    const rows = D.ufs.map(u => ({ u, r: pearson(chg(D.dataNom[fk][u]).slice(1, i + 1), br) })).filter(o => o.r != null).sort((a, b) => b.r - a.r);
+    const K = 7, list = rows.length > 2 * K ? [...rows.slice(0, K), { gap: true }, ...rows.slice(-K)] : rows;
+    const rh = 21, H = list.reduce((h, r) => h + (r.gap ? 16 : rh), 0) + 14;
+    const { svg, W } = mount(host, H);
+    const m = { l: 140, r: 44 };
+    const x = d3.scaleLinear([Math.min(0, d3.min(rows, o => o.r)), 1], [m.l, W - m.r]);
+    svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 4).attr('y2', H - 4).attr('stroke', '#bdbdbd');
+    let yy = 6;
+    for (const o of list) {
+      if (o.gap) { svg.append('text').attr('x', m.l).attr('y', yy + 11).style('font', '400 10px var(--mono)').attr('fill', '#999').text('···'); yy += 16; continue; }
+      const g = svg.append('g').attr('class', 'mov-row').attr('transform', `translate(0,${yy})`);
+      g.append('text').attr('x', m.l - 8).attr('y', rh / 2 + 3).attr('text-anchor', 'end').style('font', `${o.u === S.uf ? 700 : 400} 11px var(--sans, Inter)`).attr('fill', '#1F2A33').text(`${o.u} · ${D.byUf[o.u].nome}`);
+      g.append('rect').attr('class', 'bar').attr('x', x(Math.min(0, o.r))).attr('y', 3).attr('width', Math.max(1, Math.abs(x(o.r) - x(0)))).attr('height', rh - 6).attr('rx', 2).attr('fill', '#1F4E79').attr('opacity', .85)
+        .attr('stroke', o.u === S.uf ? '#1F2A33' : 'none').attr('stroke-width', 1.6);
+      g.append('text').attr('x', x(o.r) + 5).attr('y', rh / 2 + 3).style('font', '500 10.5px var(--mono)').attr('fill', '#1F2A33').text(cr(o.r));
+      g.append('rect').attr('class', 'hover-rect').attr('width', W).attr('height', rh)
+        .on('mousemove', (e) => showTip(e, `<b>${D.byUf[o.u].nome}</b><br>r = <span class="mono">${cr(o.r)}</span> · ${cLabel(o.r)}<br>com a média do Brasil`)).on('mouseleave', hideTip).on('click', () => setUf(o.u));
+      yy += rh;
+    }
+    $('#n-crank').innerHTML = `Quanto menor o valor, mais o estado se move por conta própria (impostos locais, logística). Mais descolado: <b>${ufName(rows.at(-1).u)}</b> (${cr(rows.at(-1).r)}).`;
   }
 
   /* ---------- resumo em texto + CSV ---------- */

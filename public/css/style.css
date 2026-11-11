@@ -31,7 +31,8 @@ select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5p
 .map-legend{display:flex;align-items:center;gap:8px;font:400 10px var(--mono);color:var(--muted);margin-top:4px}
 .map-legend i{flex:0 0 160px;height:8px;border-radius:4px}
 .r3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.r4,.r5{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.r4,.r5,.r7{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.r6{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
 #chart-map path{stroke:#f8f8f8;stroke-width:.8;cursor:pointer;transition:opacity .15s}
 #chart-map path:hover{opacity:.8}
 #chart-map text{font:500 9px var(--mono);fill:#333;pointer-events:none;paint-order:stroke;stroke:rgba(255,255,255,.7);stroke-width:2px}
@@ -148,7 +149,7 @@ h3.big b{font-weight:700}
 @media (max-width:980px){
   .layout{grid-template-columns:1fr}
   .feed{position:static;max-height:360px;order:2}
-  .r1,.r2,.r3,.r4,.r5{grid-template-columns:1fr}
+  .r1,.r2,.r3,.r4,.r5,.r6,.r7{grid-template-columns:1fr}
 }
 @media (max-width:560px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}

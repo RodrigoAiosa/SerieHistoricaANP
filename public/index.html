@@ -155,6 +155,46 @@
       </article>
     </div>
 
+    <div class="row r6">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Matriz de correlação</h3><p class="sub" id="s-cmat"></p></div>
+          <div class="seg sm cm-mode" role="group" aria-label="Base da correlação"><button data-cm="var">Variações</button><button data-cm="lvl">Níveis</button></div>
+        </div>
+        <div id="chart-cmat" class="chart" role="img" aria-label="Matriz de correlação entre gasolina, etanol, diesel e IPCA"></div>
+        <p class="note" id="n-cmat"></p>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Um combustível explica o outro?</h3><p class="sub" id="s-cscat"></p></div>
+          <div class="cmp-ctl">
+            <div class="seg sm cm-mode" role="group" aria-label="Base da correlação"><button data-cm="var">Variações</button><button data-cm="lvl">Níveis</button></div>
+            <div class="seg sm" id="cp-pair" role="group" aria-label="Par de combustíveis"><button data-p="0">Gas × Eta</button><button data-p="1">Gas × Die</button><button data-p="2">Eta × Die</button></div>
+          </div>
+        </div>
+        <div id="chart-cscat" class="chart" role="img" aria-label="Dispersão entre dois combustíveis com reta de regressão"></div>
+        <p class="note" id="n-cscat"></p>
+      </article>
+    </div>
+
+    <div class="row r7">
+      <article class="card">
+        <div class="chead">
+          <div><h3>A relação mudou ao longo do tempo?</h3><p class="sub" id="s-croll"></p></div>
+          <div class="legend" id="legend-croll"></div>
+        </div>
+        <div id="chart-croll" class="chart" role="img" aria-label="Correlação móvel de 36 meses entre pares de combustíveis"></div>
+        <p class="note" id="n-croll"></p>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Quem acompanha o Brasil</h3><p class="sub" id="s-crank"></p></div>
+        </div>
+        <div id="chart-crank" class="chart" role="img" aria-label="Correlação de cada estado com a média do Brasil"></div>
+        <p class="note" id="n-crank"></p>
+      </article>
+    </div>
+
     <article class="card wide" id="resumo">
       <div class="chead">
         <div>
