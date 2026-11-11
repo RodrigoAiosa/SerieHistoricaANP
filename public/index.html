@@ -115,6 +115,22 @@
       </article>
     </div>
 
+    <article class="card wide" id="resumo">
+      <div class="chead">
+        <div>
+          <p class="eyebrow sm">Texto pronto para apresentar · segue os filtros acima</p>
+          <h3 class="big">Resumo <b>da seleção</b></h3>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btn-copy" type="button">Copiar texto</button>
+          <button class="btn" id="btn-csv-sel" type="button" title="Estado, combustíveis e tipo de valor (nominal/real) selecionados">Baixar CSV · seleção</button>
+          <button class="btn primary" id="btn-csv-all" type="button" title="27 estados + média Brasil, 3 combustíveis, todos os meses">Baixar CSV · série completa</button>
+        </div>
+      </div>
+      <div id="resumo-txt" class="resumo" aria-live="polite"></div>
+      <p class="note sm" id="csv-note">CSV em UTF-8, separador “;” e decimal com vírgula (abre direto no Excel em português). Colunas: mes; uf; estado; combustivel; preco_nominal_rs_l; preco_real_ipca_rs_l.</p>
+    </article>
+
     <article class="card wide">
       <div class="chead">
         <div>

@@ -153,6 +153,9 @@
     $('#chip-uf').onclick = () => setUf('BR');
     $('#v-nom').onclick = () => { S.real = false; syncControls(); renderAll(true); };
     $('#v-real').onclick = () => { S.real = true; syncControls(); renderAll(true); };
+    $('#btn-copy').onclick = copyResumo;
+    $('#btn-csv-sel').onclick = () => downloadCsv(false);
+    $('#btn-csv-all').onclick = () => downloadCsv(true);
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
     $('#src').textContent = `Fonte: ${D.meta.fonte || 'ANP'}`;
@@ -194,6 +197,7 @@
     renderKpis();
     renderFeed();
     renderCharts(full);
+    renderResumo();
   }
   function renderCharts(full) {
     drawLine();
@@ -204,6 +208,84 @@
     if (full || !S._barsDrawn) { drawBars(); }
     else markBars();
     if (full || !S._heatDrawn) drawHeat(); else markHeat();
+  }
+
+
+  /* ---------- resumo em texto + CSV ---------- */
+  function resumoData() {
+    const i = S.idx, N = D.N, prev = Math.max(0, i - 12);
+    const where = S.uf === 'BR' ? 'no Brasil (média dos 27 estados)' : `em ${ufName(S.uf)} (${S.uf})`;
+    const when = D.label(i), kind = S.real ? 'valores reais, corrigidos pelo IPCA para reais de hoje' : 'valores nominais, como coletados';
+    const blocks = [];
+    for (const f of shown()) {
+      const a = ser(f.k), v = a[i];
+      const yoy = i >= 12 ? (v / a[prev] - 1) * 100 : null;
+      const mom = i > 0 ? (v / a[i - 1] - 1) * 100 : null;
+      const upto = a.slice(0, i + 1);
+      const mx = d3.max(upto), mn = d3.min(upto);
+      const imx = upto.indexOf(mx), imn = upto.indexOf(mn);
+      const acc = (v / a[0] - 1) * 100;
+      let t = `${f.n}: ${R$(v)} por litro em ${when}`;
+      if (mom != null) t += `, ${pctTxt(mom)} sobre o mês anterior`;
+      if (yoy != null) t += ` e ${pctTxt(yoy)} em 12 meses`;
+      t += `. Máxima da série: ${R$(mx)} (${D.label(imx)}); mínima: ${R$(mn)} (${D.label(imn)}). Desde ${D.label(0)}, ${acc >= 0 ? 'alta' : 'queda'} de ${nf(0).format(Math.abs(acc))}%.`;
+      blocks.push(t);
+    }
+    const r = rat()[i] * 100, ok = r <= THRESH * 100;
+    const regra = `Regra dos 70%: em ${when} ${where}, o etanol custava ${f1.format(r)}% do preço da gasolina — ${ok ? 'compensava abastecer com etanol' : 'não compensava, pois ficou acima de 70%'}.`;
+    // ranking de estados (gasolina, mês selecionado)
+    const rk = D.ufs.map(u => ({ u, v: DT().gasolina[u][i] })).sort((a, b) => b.v - a.v);
+    const ranking = `Gasolina mais cara entre os estados: ${ufName(rk[0].u)} (${R$(rk[0].v)}); mais barata: ${ufName(rk.at(-1).u)} (${R$(rk.at(-1).v)}).` +
+      (S.uf !== 'BR' ? ` ${ufName(S.uf)} ocupa a ${rk.findIndex(o => o.u === S.uf) + 1}ª posição entre 27.` : '');
+    // fatos recentes (até o mês selecionado)
+    const fatos = D.evs.filter(e => e.i <= i && !e.after).slice(-3).reverse().map(e => `${e.title} (${MESES[+e.date.slice(5) - 1]}/${e.date.slice(0, 4)})`);
+    return { where, when, kind, blocks, regra, ranking, fatos };
+  }
+  function renderResumo() {
+    const host = $('#resumo-txt'); if (!host) return;
+    const r = resumoData();
+    host.innerHTML = '';
+    if (D.meta.demo) host.append(el('p', 'warn', 'Atenção: dados de demonstração (sintéticos) — não use estes números como oficiais.'));
+    host.append(el('h4', null, `Panorama · ${r.when}`));
+    host.append(el('p', null, `Preços ${r.where}, ${r.kind}.`));
+    for (const b of r.blocks) host.append(el('p', null, b.replace(/&/g, '&amp;').replace(/</g, '&lt;')));
+    host.append(el('h4', null, 'Etanol ou gasolina?'));
+    host.append(el('p', null, r.regra));
+    host.append(el('h4', null, 'Entre os estados'));
+    host.append(el('p', null, r.ranking));
+    if (r.fatos.length) {
+      host.append(el('h4', null, 'Fatos recentes'));
+      host.append(el('p', null, r.fatos.map(t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>').replace(/^/, '')));
+    }
+    host.append(el('p', 'note sm', `Fonte: ${D.meta.fonte || 'ANP'} · preços médios de revenda.`));
+  }
+  function resumoPlain() {
+    const r = resumoData();
+    const L = [`RESUMO · ${r.when} · ${r.where}`, `(${r.kind})`, ''];
+    if (D.meta.demo) L.push('ATENÇÃO: dados de demonstração (sintéticos).', '');
+    L.push(...r.blocks, '', r.regra, '', r.ranking);
+    if (r.fatos.length) L.push('', 'Fatos recentes:', ...r.fatos.map(t => `- ${t}`));
+    L.push('', `Fonte: ${D.meta.fonte || 'ANP'}.`);
+    return L.join('\n');
+  }
+  async function copyResumo() {
+    const b = $('#btn-copy'), txt = resumoPlain();
+    try { await navigator.clipboard.writeText(txt); b.textContent = 'Copiado ✓'; }
+    catch { const t = el('textarea'); t.value = txt; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); b.textContent = 'Copiado ✓'; }
+    setTimeout(() => { b.textContent = 'Copiar texto'; }, 1800);
+  }
+  function downloadCsv(all) {
+    const ufs = all ? [...D.ufs, 'BR'] : [S.uf];
+    const fuels = all ? FUELS : shown();
+    const num = (v) => String(+v.toFixed(3)).replace('.', ',');
+    const rows = ['mes;uf;estado;combustivel;preco_nominal_rs_l;preco_real_ipca_rs_l'];
+    for (const u of ufs) for (const f of fuels) for (let i = 0; i < D.N; i++) {
+      rows.push([D.months[i], u, u === 'BR' ? 'Brasil (média)' : D.byUf[u].nome, f.k, num(D.dataNom[f.k][u][i]), num(D.dataReal[f.k][u][i])].join(';'));
+    }
+    const blob = new Blob(['﻿' + rows.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
+    const a = el('a'); a.href = URL.createObjectURL(blob);
+    a.download = all ? 'anp_serie_historica_completa.csv' : `anp_${S.uf}_${S.fuel === 'all' ? 'tres_combustiveis' : S.fuel}.csv`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   /* ---------- KPIs ---------- */
