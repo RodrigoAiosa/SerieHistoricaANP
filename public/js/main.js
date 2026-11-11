@@ -37,7 +37,7 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', real: false, mapMetric: null };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null };
   let D = null;           // dados processados
   let timer = null;
 
@@ -139,6 +139,7 @@
     const present = [...new Set(D.evs.map(e => e.type))];
     for (const t of present) selType.append(new Option(TYPES[t]?.n || t, t));
     selType.onchange = () => { S.type = selType.value; renderFeed(); };
+    $('#q').oninput = (e) => { S.q = e.target.value; renderFeed(); };
 
     const sl = $('#slider');
     sl.max = D.N - 1;
@@ -277,15 +278,32 @@
   /* ---------- feed ---------- */
   function renderFeed() {
     const list = $('#feed-list'), i = S.idx;
-    const items = D.evs.filter(e => S.type === 'all' || e.type === S.type)
+    // busca: ignora maiúsculas e acentos; todos os termos digitados precisam aparecer
+    const fold = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const terms = fold(S.q).split(/\s+/).filter(Boolean);
+    const hay = (e) => fold(`${e.title} ${e.text} ${TYPES[e.type]?.n || e.type} ${MESES_L[+e.date.slice(5) - 1]} ${e.date.slice(0, 4)}`);
+    const items = D.evs.filter(e => (S.type === 'all' || e.type === S.type) && terms.every(t => hay(e).includes(t)))
       .map(e => ({ ...e, dist: Math.abs(e.i - i) })).sort((a, b) => a.dist - b.dist);
-    $('#feed-sub').textContent = `${items.length} registros · mais próximos de ${D.label(i)}`;
+    $('#feed-sub').textContent = `${items.length} ${items.length === 1 ? 'registro' : 'registros'} · ${terms.length ? 'filtrados · ' : ''}mais próximos de ${D.label(i)}`;
     list.innerHTML = '';
+    if (!items.length) { list.append(el('div', 'feed-empty', 'Nenhum registro encontrado para esta busca.')); return; }
+    // destaca os termos encontrados (sobre texto escapado)
+    const esc = (t) => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const mark = (t) => {
+      if (!terms.length) return esc(t);
+      const f = fold(t), ranges = [];
+      for (const term of terms) { let k = f.indexOf(term); while (k >= 0) { ranges.push([k, k + term.length]); k = f.indexOf(term, k + term.length); } }
+      ranges.sort((a, b) => a[0] - b[0]);
+      const merged = []; for (const r of ranges) { const l = merged.at(-1); if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push([...r]); }
+      let out = '', pos = 0;
+      for (const [a, b] of merged) { out += esc(t.slice(pos, a)) + '<mark>' + esc(t.slice(a, b)) + '</mark>'; pos = b; }
+      return out + esc(t.slice(pos));
+    };
     for (const e of items) {
       const t = TYPES[e.type] || { n: e.type, c: '#999' };
       const [y, m] = e.date.split('-');
       const node = el('div', `ev${e.i > i ? ' future' : ''}${e.dist <= 2 ? ' near' : ''}`,
-        `<h4>${e.title}</h4><p>${e.text}</p>
+        `<h4>${mark(e.title)}</h4><p>${mark(e.text)}</p>
          <div class="meta"><span class="tag" style="--c:${t.c}">${t.n}</span><span>${MESES_L[+m - 1]} de ${y}</span></div>`);
       node.style.setProperty('--c', t.c);
       node.tabIndex = 0;

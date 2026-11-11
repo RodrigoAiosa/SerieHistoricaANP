@@ -110,6 +110,11 @@ h3.big b{font-weight:700}
 .feed{position:sticky;top:58px;max-height:calc(100vh - 74px);display:flex;flex-direction:column;padding:0;overflow:hidden}
 .feed-head{padding:14px 14px 8px}
 .feed-head h2{font-size:14px;font-weight:600}
+.search{margin-top:8px}
+.search input{width:100%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B666E' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 8px 50%/14px;border:1px solid var(--line);border-radius:6px;padding:6px 8px 6px 28px;font-size:12px}
+.search input:focus{outline:2px solid var(--ink);outline-offset:1px}
+.ev mark{background:#F8E3A6;color:inherit;border-radius:2px;padding:0 1px}
+.feed-empty{font-size:12px;color:var(--muted);padding:12px 4px}
 .feed-head select{width:100%;margin-top:8px;font-size:12px}
 .feed-list{overflow:auto;padding:4px 12px 14px;display:flex;flex-direction:column;gap:10px}
 .ev{background:#fff;border-radius:8px;border-left:3px solid var(--c,#ccc);padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s,opacity .2s}
