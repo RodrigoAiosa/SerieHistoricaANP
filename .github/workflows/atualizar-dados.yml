@@ -25,6 +25,13 @@ jobs:
 
       - run: pip install pandas
 
+      - name: Reaproveitar CSVs já baixados
+        uses: actions/cache@v4
+        with:
+          path: raw
+          key: anp-raw-${{ github.run_id }}
+          restore-keys: anp-raw-
+
       - name: Baixar CSVs da ANP
         run: python scripts/download_anp.py raw
 
@@ -43,6 +50,10 @@ jobs:
           assert m["demo"] is False, "meta.json ainda marca demonstração"
           assert len(s["months"]) >= 200, f"poucos meses: {len(s['months'])}"
           assert len(s["gasolina"]) == 27, "faltam estados"
+          import datetime as dt
+          hoje = dt.date.today(); ult = s["months"][-1]
+          atraso = (hoje.year - int(ult[:4])) * 12 + hoje.month - int(ult[5:7])
+          assert atraso <= 4, f"dados desatualizados: último mês {ult}"
           print("coletas:", f"{m['coletas']:,}", "| meses:", len(s["months"]), "| último:", s["months"][-1])
           PY
 

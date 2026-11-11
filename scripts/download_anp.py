@@ -1,23 +1,37 @@
 #!/usr/bin/env python3
-"""Baixa os CSVs semestrais (combustíveis automotivos) da série histórica da ANP.
+"""Baixa a série histórica de preços de combustíveis automotivos da ANP (gasolina, etanol, diesel).
 
-Uso: python scripts/download_anp.py raw/
-Endereço oficial: .../dados-abertos/arquivos/shpc/dsas/ca/ca-AAAA-SS.csv (SS = 01 ou 02).
-Semestres que ainda não existem (404) são ignorados; falha se nada for baixado.
+Uso: python scripts/download_anp.py raw/        (--list e --peek: modos de diagnóstico)
+
+A ANP publica em três formatos; este script junta todos SEM sobreposição:
+  2004-2021  .../shpc/dsas/ca/ca-AAAA-SS.csv           (semestral, CSV)
+  2022       .../shpc/dsas/ca/ca-2022-0S.zip           (semestral, ZIP com o CSV)
+  2023 em diante .../shpc/dsan/AAAA/<arquivo mensal>.csv (um arquivo "gasolina-etanol" e um "diesel-gnv" por mês;
+             os nomes mudam de mês a mês, então os links são lidos da página da série histórica)
+Todos têm as mesmas colunas ("Regiao - Sigla;...;Produto;Data da Coleta;Valor de Venda;...;Bandeira").
+Arquivos de períodos antigos já baixados são reaproveitados (cache); os últimos meses são sempre baixados de novo.
 """
 import datetime as dt
+import io
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
+from urllib.parse import urljoin
 
-BASE = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/dsas/ca"
+ROOT = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc"
+BASE = f"{ROOT}/dsas/ca"
+PAGE = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis"
 HEADERS = {"User-Agent": "Mozilla/5.0 (SerieHistoricaANP; +https://github.com/RodrigoAiosa/SerieHistoricaANP)"}
+REFRESH_DAYS = 100   # arquivos mais recentes que isso são rebaixados (a ANP pode corrigir/atualizar)
 
 
 def fetch(url, dest, tries=4):
+    """Baixa url para dest. False se 404; levanta erro se falhar mesmo após as tentativas."""
+    err = None
     for k in range(tries):
         try:
             req = urllib.request.Request(url, headers=HEADERS)
@@ -27,7 +41,6 @@ def fetch(url, dest, tries=4):
             return True
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                print(f"  HTTP 404 em {url}")
                 return False
             err = e
         except Exception as e:  # rede instável: tenta de novo
@@ -37,11 +50,104 @@ def fetch(url, dest, tries=4):
     raise SystemExit(f"Falha ao baixar {url}")
 
 
-PAGE = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis"
+def page_html():
+    req = urllib.request.Request(PAGE, headers=HEADERS)
+    return urllib.request.urlopen(req, timeout=90).read().decode("utf-8", "replace")
+
+
+def discover_monthly(html):
+    """Lê da página os arquivos mensais (2023+): [(ano, mes, tipo, url)], tipo = gasolina-etanol | diesel-gnv."""
+    found = {}
+    for href in sorted(set(re.findall(r'href="([^"]+)"', html))):
+        m = re.search(r"/shpc/dsan/(\d{4})/([^/?#]+)$", href)
+        if not m:
+            continue
+        year, fname = int(m.group(1)), m.group(2).lower()
+        kind = "gasolina-etanol" if "gasolina-etanol" in fname else "diesel-gnv" if "diesel-gnv" in fname else None
+        if not kind:   # GLP e outros não entram
+            continue
+        mm = re.match(r"(\d{2})-", fname) or re.search(r"-(\d{2})(?:\.csv)?$", fname)
+        if not mm or not 1 <= int(mm.group(1)) <= 12:
+            print(f"  aviso: não entendi o mês em {fname}")
+            continue
+        found[(year, mm.group(1), kind)] = urljoin(PAGE, href)
+    return [(y, mo, k, u) for (y, mo, k), u in sorted(found.items())]
+
+
+def is_old(year, month):
+    """True se o período é antigo o bastante para reaproveitar o arquivo já baixado."""
+    return (dt.date.today() - dt.date(year, month, 1)).days > REFRESH_DAYS
+
+
+def have(dest, old):
+    return old and dest.exists() and dest.stat().st_size > 0
+
+
+def save_csv_from_zip(zpath, out):
+    """Extrai os CSVs de um ZIP para out/; devolve os nomes extraídos."""
+    names = []
+    with zipfile.ZipFile(zpath) as z:
+        for info in z.infolist():
+            if info.filename.lower().endswith(".csv"):
+                target = out / Path(info.filename).name
+                with z.open(info) as src, open(target, "wb") as dst:
+                    while chunk := src.read(1 << 20):
+                        dst.write(chunk)
+                names.append(target.name)
+    return names
+
+
+def main(out):
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    got = 0
+
+    # 1) semestrais 2004-2022 (CSV; 2022 em ZIP)
+    for year in range(2004, 2023):
+        for sem in ("01", "02"):
+            name = f"ca-{year}-{sem}.csv"
+            dest = out / name
+            if have(dest, True):
+                print(f"==  {name}  (já baixado)")
+                got += 1
+                continue
+            if fetch(f"{BASE}/{name}", dest):
+                print(f"ok  {name}  {dest.stat().st_size / 1e6:,.1f} MB")
+                got += 1
+                continue
+            dest.unlink(missing_ok=True)
+            zpath = out / f"ca-{year}-{sem}.zip"
+            if fetch(f"{BASE}/ca-{year}-{sem}.zip", zpath):
+                names = save_csv_from_zip(zpath, out)
+                zpath.unlink(missing_ok=True)
+                print(f"ok  ca-{year}-{sem}.zip -> {', '.join(names)}")
+                got += 1
+            else:
+                zpath.unlink(missing_ok=True)
+                print(f"--  ca-{year}-{sem}  (não publicado pela ANP)")
+
+    # 2) mensais 2023+ (links lidos da página)
+    monthly = discover_monthly(page_html())
+    if not monthly:
+        sys.exit("Nenhum arquivo mensal (2023+) encontrado na página da ANP: o layout da página mudou?")
+    for year, mo, kind, url in monthly:
+        name = f"dsan-{year}-{mo}-{kind}.csv"
+        dest = out / name
+        if have(dest, is_old(year, int(mo))):
+            print(f"==  {name}  (já baixado)")
+            got += 1
+            continue
+        if fetch(url, dest):
+            print(f"ok  {name}  {dest.stat().st_size / 1e6:,.1f} MB")
+            got += 1
+        else:
+            dest.unlink(missing_ok=True)
+            print(f"--  {name}  (404: {url})")
+    last = max((y, m) for y, m, _, _ in monthly)
+    print(f"{got} arquivos em {out}/ · último mês publicado: {last[0]}-{last[1]}")
 
 
 def status(url):
-    """Código HTTP e tipo do conteúdo (lê só o começo do arquivo)."""
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=60) as r:
             r.read(256)
@@ -53,91 +159,17 @@ def status(url):
 
 
 def diagnose():
-    """Modo --list: mostra os links de dados que a página da ANP publica e testa endereços candidatos."""
-    print("== links na página da ANP ==")
-    try:
-        req = urllib.request.Request(PAGE, headers=HEADERS)
-        html = urllib.request.urlopen(req, timeout=60).read().decode("utf-8", "replace")
-        links = sorted(set(re.findall(r'href="([^"]+)"', html)))
-        keep = [l for l in links if re.search(r"\.(csv|xlsx?|zip|ods)(\?|$)|/shpc/", l, re.I)]
-        print(f"{len(links)} links na página, {len(keep)} de dados")
-        for l in keep:
-            print("  ", l)
-    except Exception as e:
-        print("não consegui abrir a página:", type(e).__name__, e)
-    print("== endereços candidatos ==")
-    root = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc"
-    for y in (2021, 2022, 2023, 2024, 2025):
-        for u in (f"{BASE}/ca-{y}-01.csv", f"{BASE}/ca-{y}-02.csv", f"{root}/ca/ca-{y}-01.csv", f"{root}/dsas/ca-{y}-01.csv",
-                  f"{BASE}/ca-{y}-01.xlsx", f"{root}/dsas/ca/ca-{y}-01.zip"):
-            print(f"  {status(u):45s} {u}")
-
-
-def peek(url, n=3):
-    """Mostra as primeiras linhas de um CSV (ou do 1º CSV dentro de um ZIP) para conferir colunas e codificação."""
-    import io
-    import zipfile
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=300) as r:
-            if url.endswith(".zip"):
-                z = zipfile.ZipFile(io.BytesIO(r.read()))
-                print("  zip:", [(i.filename, i.file_size) for i in z.infolist()])
-                raw = z.open(z.infolist()[0]).read(4000)
-            else:
-                raw = r.read(4000)
-    except Exception as e:
-        print("  erro:", type(e).__name__, e)
-        return
-    for enc in ("utf-8", "latin-1"):
-        try:
-            txt = raw.decode(enc)
-            break
-        except UnicodeDecodeError:
-            continue
-    print(f"  codificação: {enc}")
-    for line in txt.splitlines()[:n]:
-        print("  |", line[:400])
-
-
-def diagnose2():
-    root = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc"
-    print("== links com 2022 ou zip ==")
-    html = urllib.request.urlopen(urllib.request.Request(PAGE, headers=HEADERS), timeout=60).read().decode("utf-8", "replace")
-    for l in sorted(set(re.findall(r'href="([^"]+)"', html))):
-        if re.search(r"2022|\.zip", l) and "/shpc/" in l:
-            print("  ", l)
-    for u in (f"{root}/dsas/ca/ca-2022-01.zip", f"{root}/dsas/ca/ca-2022-02.zip"):
-        print(status(u), u)
-    for u in (f"{root}/dsas/ca/ca-2022-02.zip", f"{root}/dsan/2024/precos-gasolina-etanol-01.csv", f"{root}/dsan/2024/precos-diesel-gnv-01.csv",
-              f"{root}/dsan/2026/10-gasolina-etanol.csv", f"{root}/dsan/2026/10-diesel-gnv.csv", f"{root}/dsan/2026/04-dados-abertos-precos-gasolina-etanol"):
-        print("==", u)
-        peek(u)
-
-
-def main(out):
-    out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
-    got = 0
-    for year in range(2004, dt.date.today().year + 1):
-        for sem in ("01", "02"):
-            name = f"ca-{year}-{sem}.csv"
-            if fetch(f"{BASE}/{name}", out / name):
-                size = (out / name).stat().st_size / 1e6
-                print(f"ok  {name}  {size:,.1f} MB")
-                got += 1
-            else:
-                (out / name).unlink(missing_ok=True)
-                print(f"--  {name}  (não existe)")
-    if not got:
-        sys.exit("Nenhum arquivo baixado: confira o endereço da ANP.")
-    print(f"{got} arquivos em {out}/")
+    """--list: mostra o que o download vai pegar (sem baixar nada)."""
+    monthly = discover_monthly(page_html())
+    print(f"{len(monthly)} arquivos mensais na página; primeiro/último: {monthly[0][:3]} / {monthly[-1][:3]}")
+    for y, mo, k, u in monthly[-6:]:
+        print(f"  {y}-{mo} {k:16s} {status(u):40s} {u}")
+    for u in (f"{BASE}/ca-2021-02.csv", f"{BASE}/ca-2022-01.zip", f"{BASE}/ca-2022-02.zip"):
+        print(f"  {status(u):40s} {u}")
 
 
 if __name__ == "__main__":
     if "--list" in sys.argv:
         diagnose()
         sys.exit(0)
-    if "--peek" in sys.argv:
-        diagnose2()
-        sys.exit(0)
-    main(sys.argv[1] if len(sys.argv) > 1 else "raw")
+    main(sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "raw")

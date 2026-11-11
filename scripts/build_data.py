@@ -93,7 +93,12 @@ def main(raw_dir):
 
     agg = pd.concat(parts).groupby(["fuel", "uf", "ym"]).sum().reset_index()
     agg["mean"] = agg["sum"] / agg["count"]
-    months = sorted(agg["ym"].unique())
+    present = sorted(agg["ym"].unique())
+    # calendário contínuo: o painel calcula YoY/MoM por posição, então um mês sem dados não pode "sumir" da lista
+    months = pd.period_range(present[0], present[-1], freq="M").strftime("%Y-%m").tolist()
+    missing = sorted(set(months) - set(present))
+    if missing:
+        print(f"ATENÇÃO: {len(missing)} meses sem dados (valores interpolados): {', '.join(missing)}")
     ufs = sorted(agg["uf"].unique())
     meta_states = json.loads((OUT / "series.json").read_text(encoding="utf-8"))["states"] \
         if (OUT / "series.json").exists() else [{"uf": u, "nome": u, "regiao": ""} for u in ufs]
