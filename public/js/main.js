@@ -412,7 +412,7 @@
       ['Linha do tempo', '.timebar', 'Escolhe o mês analisado; todo o painel acompanha. O botão ▶ anima mês a mês e “Mais recente” volta ao último mês. A seleção fica no endereço da página, então o link já compartilha a visão atual.'],
     ]],
     ['Notícias', [
-      ['O que aconteceu', '.feed', 'Fatos que mexeram com o preço (greves, guerras, mudanças de política, reajustes). Aparecem os mais próximos do mês escolhido, com fonte. Dá para buscar por qualquer termo, filtrar por tipo e clicar num fato para ir ao mês dele.'],
+      ['O que aconteceu', '.feed', 'Fatos que mexeram com o preço (greves, guerras, mudanças de política, reajustes). Aparecem os mais próximos do mês escolhido, com fonte. Dá para buscar por qualquer termo, filtrar por tipo e clicar num fato para ir ao mês dele. Passe o mouse sobre um fato para ver a miniatura da matéria.'],
     ]],
     ['Indicadores (cartões)', [
       ['Gasolina · Etanol · Diesel', '#kpis', 'Preço médio por litro no mês, a variação contra o mês anterior (▲ vermelho = subiu, ▼ verde = caiu) e uma mini-linha com a série inteira.'],
@@ -848,8 +848,44 @@
       node.tabIndex = 0;
       node.onclick = (ev) => { if (ev.target.closest('a')) return; stop(); setIdx(e.i); };
       node.onkeydown = (ev) => { if (ev.key === 'Enter') node.click(); };
+      if (e.url) attachThumb(node, e, host(e.url));
       list.append(node);
     }
+  }
+
+
+  /* ---------- miniatura da matéria ao passar o mouse (O que aconteceu) ---------- */
+  let thumbEl = null, thumbTimer = 0;
+  function thumbNode() {
+    if (thumbEl) return thumbEl;
+    thumbEl = el('div', 'thumb'); thumbEl.id = 'thumb'; thumbEl.setAttribute('role', 'tooltip'); thumbEl.hidden = true;
+    document.body.append(thumbEl);
+    const hide = () => hideThumb(); addEventListener('scroll', hide, true); addEventListener('resize', hide);
+    return thumbEl;
+  }
+  function hideThumb() { clearTimeout(thumbTimer); if (thumbEl) { thumbEl.hidden = true; thumbEl.innerHTML = ''; } }
+  function showThumb(node, e, hostName) {
+    const t = thumbNode(), esc = (x) => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const fav = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostName)}&sz=64`;
+    const fallback = `<div class="th-fb"><img src="${fav}" alt="" width="32" height="32" referrerpolicy="no-referrer"><span>${esc(hostName)}</span><small>prévia indisponível</small></div>`;
+    t.innerHTML = `<div class="th-img">${e.img ? `<img alt="" referrerpolicy="no-referrer" decoding="async">` : fallback}</div>
+      <div class="th-cap"><b>${esc(hostName)}</b><span>Abrir a matéria: clique em “${esc(hostName.split('.').slice(-3, -1).join('.') || hostName)} ↗”</span></div>`;
+    if (e.img) {
+      const im = t.querySelector('.th-img img');
+      im.onerror = () => { t.querySelector('.th-img').innerHTML = fallback; };
+      im.src = e.img;
+    }
+    t.hidden = false;
+    const r = node.getBoundingClientRect(), w = 288, h = t.offsetHeight, M = 8;
+    let left = r.right + 14, top = r.top;
+    if (left + w > innerWidth - M) { left = Math.min(Math.max(M, r.left), innerWidth - w - M); top = r.bottom + 8; if (top + h > innerHeight - M) top = Math.max(M, r.top - h - 8); }
+    top = Math.min(Math.max(M, top), innerHeight - h - M);
+    t.style.left = `${left}px`; t.style.top = `${top}px`;
+  }
+  function attachThumb(node, e, hostName) {
+    const on = () => { clearTimeout(thumbTimer); thumbTimer = setTimeout(() => showThumb(node, e, hostName), 160); };
+    node.addEventListener('mouseenter', on); node.addEventListener('mouseleave', hideThumb);
+    node.addEventListener('focus', on); node.addEventListener('blur', hideThumb);
   }
 
   /* ---------- infra de gráficos ---------- */

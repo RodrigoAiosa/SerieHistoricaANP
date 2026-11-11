@@ -217,3 +217,15 @@ dialog.guide::backdrop{background:rgba(31,42,51,.35)}
 .tbl tbody tr:hover{background:#faf8f3}
 .tbl tbody tr.sel{background:#FBF1D6;box-shadow:inset 3px 0 0 var(--gold)}
 .tbl td.up{color:var(--red)} .tbl td.dn{color:var(--green)} .tbl td.na{color:#aaa}
+
+/* miniatura da matéria */
+.thumb{position:fixed;z-index:60;width:288px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.28);pointer-events:none;border:1px solid var(--line)}
+.thumb[hidden]{display:none}
+.th-img{width:288px;aspect-ratio:16/9;background:linear-gradient(135deg,#dfe6ee,#eef2f6);display:flex;align-items:center;justify-content:center}
+.th-img>img{width:100%;height:100%;object-fit:cover;display:block}
+.th-fb{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--ink2);font-size:13px;font-weight:600;text-align:center;padding:0 12px}
+.th-fb small{font:400 11px var(--mono);color:var(--muted)}
+.th-cap{padding:8px 12px 10px;display:flex;flex-direction:column;gap:2px}
+.th-cap b{font-size:12.5px}
+.th-cap span{font-size:11.5px;color:var(--muted);line-height:1.35}
+@media (hover:none){.thumb{display:none}}
