@@ -40,7 +40,7 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false, cm: 'var', cp: 0 };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false, cm: 'var', cp: 0, tf: 'gasolina', tg: 'm', tm: false };
   let D = null;           // dados processados
   let timer = null;
 
@@ -121,6 +121,8 @@
     S.real = p.get('real') === '1';
     const cmp = p.get('cmp'); if (cmp != null) S.cmp = cmp.split(',').filter(u => D.byUf[u]).slice(0, 4);
     S.cd = p.get('cd') === '1';
+    if (['gasolina', 'etanol', 'diesel'].includes(p.get('tf'))) S.tf = p.get('tf'); else if (['gasolina', 'etanol', 'diesel'].includes(S.fuel)) S.tf = S.fuel;
+    S.tg = p.get('tg') === 'y' ? 'y' : 'm'; S.tm = p.get('tm') === '1';
     S.cm = p.get('cm') === 'lvl' ? 'lvl' : 'var';
     const cp = +p.get('cp'); S.cp = [1, 2].includes(cp) ? cp : 0;
     const mv = +p.get('mv'); if ([1, 12, 60].includes(mv)) S.mv = mv;
@@ -136,6 +138,9 @@
     if (S.cmp.join() !== 'SP,RJ,AM') p.set('cmp', S.cmp.join(','));
     if (S.mv !== 12) p.set('mv', S.mv);
     if (S.cd) p.set('cd', '1');
+    if (S.tf !== (S.fuel === 'all' ? 'gasolina' : S.fuel)) p.set('tf', S.tf);
+    if (S.tg === 'y') p.set('tg', 'y');
+    if (S.tm) p.set('tm', '1');
     if (S.cm !== 'var') p.set('cm', S.cm);
     if (S.cp) p.set('cp', S.cp);
     const h = p.toString();
@@ -148,7 +153,7 @@
     selUf.append(new Option('Brasil (média)', 'BR'));
     for (const s of D.states) selUf.append(new Option(`${s.uf} — ${s.nome}`, s.uf));
     selUf.onchange = () => setUf(selUf.value);
-    $('#sel-fuel').onchange = (e) => { S.fuel = e.target.value; renderAll(true); };
+    $('#sel-fuel').onchange = (e) => { S.fuel = e.target.value; if (S.fuel !== 'all') S.tf = S.fuel; renderAll(true); };
 
     const selType = $('#sel-type');
     const present = [...new Set(D.evs.map(e => e.type))];
@@ -172,6 +177,10 @@
     document.querySelectorAll('#cmp-mode button').forEach(b => b.onclick = () => { S.cd = b.dataset.cd === '1'; syncControls(); writeHash(); drawCompare(); });
     document.querySelectorAll('.cm-mode button').forEach(b => b.onclick = () => { S.cm = b.dataset.cm; syncControls(); writeHash(); drawCorr(); });
     document.querySelectorAll('#cp-pair button').forEach(b => b.onclick = () => { S.cp = +b.dataset.p; syncControls(); writeHash(); drawCorr(); });
+    document.querySelectorAll('#tb-fuel button').forEach(b => b.onclick = () => { S.tf = b.dataset.tf; syncControls(); writeHash(); buildTable(); });
+    document.querySelectorAll('#tb-gran button').forEach(b => b.onclick = () => { S.tg = b.dataset.g; syncControls(); writeHash(); buildTable(); });
+    $('#tb-more').onchange = (e) => { S.tm = e.target.checked; writeHash(); buildTable(); };
+    $('#tb-csv').onclick = downloadTableCsv;
     buildGuide();
     if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
@@ -193,6 +202,9 @@
     document.querySelectorAll('#mv-win button').forEach(b => b.classList.toggle('on', +b.dataset.w === S.mv));
     document.querySelectorAll('#cmp-mode button').forEach(b => b.classList.toggle('on', (b.dataset.cd === '1') === S.cd));
     document.querySelectorAll('.cm-mode button').forEach(b => b.classList.toggle('on', b.dataset.cm === S.cm));
+    document.querySelectorAll('#tb-fuel button').forEach(b => b.classList.toggle('on', b.dataset.tf === S.tf));
+    document.querySelectorAll('#tb-gran button').forEach(b => b.classList.toggle('on', b.dataset.g === S.tg));
+    $('#tb-more').checked = S.tm;
     document.querySelectorAll('#cp-pair button').forEach(b => b.classList.toggle('on', +b.dataset.p === S.cp));
     cmpControls();
   }
@@ -233,6 +245,7 @@
     drawCompare();
     drawBandeira();
     drawCorr();
+    if (full || !S._tbBuilt) buildTable(); else markTable();
     if (full || !S._barsDrawn) { drawBars(); }
     else markBars();
     if (full || !S._heatDrawn) drawHeat(); else markHeat();
@@ -427,6 +440,7 @@
       ['Quem acompanha o Brasil', '#chart-crank', 'Correlação de cada estado com a média nacional. Valores baixos indicam estados cujo preço se move mais por conta própria.'],
     ]],
     ['Resumo e dados', [
+      ['Tabela de variações', '#tabela', 'Período, valor, %YoY (contra o mesmo mês do ano anterior) e %MoM (contra o mês anterior), do mais recente para o mais antigo. Dá para trocar o combustível, ver por ano e ligar “Mais colunas” (Δ R$, % no ano, IPCA 12m e vs. Brasil). A linha dourada é o mês selecionado e há botão para baixar CSV.'],
       ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
       ['Fonte e avisos', '.foot', 'Dados da ANP (levantamento de preços de revenda). “Dados de demonstração” indica números sintéticos; “IPCA aproximado” indica que o índice oficial ainda não foi carregado.'],
     ]],
@@ -580,6 +594,81 @@
       yy += rh;
     }
     $('#n-crank').innerHTML = `Quanto menor o valor, mais o estado se move por conta própria (impostos locais, logística). Mais descolado: <b>${ufName(rows.at(-1).u)}</b> (${cr(rows.at(-1).r)}).`;
+  }
+
+
+  /* ---------- tabela: período · valor · %YoY · %MoM (+ colunas extras) ---------- */
+  function tableRows() {
+    const a = DT()[S.tf][S.uf], br = DT()[S.tf].BR, ip = D.ipca.indice, rows = [];
+    if (S.tg === 'm') {
+      for (let i = 0; i < D.N; i++) {
+        const yi = D.yearIdx[D.yearOf(i)][0];
+        rows.push({
+          i, per: D.label(i), v: a[i],
+          yoy: i >= 12 ? (a[i] / a[i - 12] - 1) * 100 : null,
+          mom: i >= 1 ? (a[i] / a[i - 1] - 1) * 100 : null,
+          dr: i >= 1 ? a[i] - a[i - 1] : null,
+          ytd: i > yi ? (a[i] / a[yi - 1 >= 0 ? yi - 1 : yi] - 1) * 100 : null,
+          ipca: i >= 12 ? (ip[i] / ip[i - 12] - 1) * 100 : null,
+          vsbr: S.uf !== 'BR' ? (a[i] / br[i] - 1) * 100 : null,
+        });
+      }
+    } else {
+      let prev = null;
+      for (const yr of D.years) {
+        const ix = D.yearIdx[yr], v = d3.mean(ix, k => a[k]), last = ix.at(-1);
+        const ipv = d3.mean(ix, k => ip[k]);
+        rows.push({
+          i: last, per: ix.length < 12 ? `${yr}*` : String(yr), v,
+          yoy: prev ? (v / prev.v - 1) * 100 : null, mom: null,
+          dr: prev ? v - prev.v : null, ytd: null, ipca: prev ? (ipv / prev.ip - 1) * 100 : null,
+          vsbr: S.uf !== 'BR' ? (v / d3.mean(ix, k => br[k]) - 1) * 100 : null,
+        });
+        prev = { v, ip: ipv };
+      }
+    }
+    return rows.reverse();   // mais recente primeiro
+  }
+  const tCols = () => {
+    const c = [['per', 'Período'], ['v', `Valor (R$/L)`], ['yoy', '% YoY']];
+    if (S.tg === 'm') c.push(['mom', '% MoM']);
+    if (S.tm) { c.push(['dr', S.tg === 'm' ? 'Δ R$ no mês' : 'Δ R$ no ano']); if (S.tg === 'm') c.push(['ytd', '% no ano']); c.push(['ipca', 'IPCA 12m']); if (S.uf !== 'BR') c.push(['vsbr', 'vs. Brasil']); }
+    return c;
+  };
+  function buildTable() {
+    const wrap = $('#tb-wrap'); if (!wrap) return;
+    const cols = tCols(), rows = tableRows();
+    S._tbBuilt = true;
+    const fmt = { per: (r) => r.per, v: (r) => R$(r.v), dr: (r) => (r.dr == null ? null : `${r.dr > 0 ? '+' : r.dr < 0 ? '−' : ''}${f2.format(Math.abs(r.dr))}`) };
+    const cell = (r, [k]) => {
+      if (fmt[k]) return `<td>${fmt[k](r) ?? '—'}</td>`;
+      const v = r[k]; if (v == null) return '<td class="na">—</td>';
+      const tone = k === 'ipca' || k === 'vsbr' ? '' : v > 0.005 ? 'up' : v < -0.005 ? 'dn' : '';
+      return `<td class="${tone}">${pctTxt(v, 2)}</td>`;
+    };
+    wrap.innerHTML = `<table class="tbl"><thead><tr>${cols.map(c => `<th scope="col">${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr data-i="${r.i}">${cols.map(c => cell(r, c)).join('')}</tr>`).join('')}</tbody></table>`;
+    wrap.querySelectorAll('tbody tr').forEach(tr => tr.onclick = () => { stop(); setIdx(+tr.dataset.i); });
+    $('#tb-sub').textContent = `${FUEL[S.tf].n} · ${ufName(S.uf)} · ${S.real ? 'valores reais (IPCA)' : 'valores nominais'} · ${S.tg === 'm' ? 'mensal' : 'média anual'} · ${rows.length} linhas`;
+    $('#tb-note').innerHTML = '%YoY: variação contra o mesmo período do ano anterior · %MoM: contra o mês anterior · linha dourada = mês selecionado (clique numa linha para ir até ele)'
+      + (S.tg === 'y' ? ' · * ano incompleto (média só dos meses disponíveis)' : '') + (S.tm && D.ipca.aproximado ? ' · IPCA aproximado' : '');
+    markTable(true);
+  }
+  function markTable(jump) {
+    const wrap = $('#tb-wrap'); if (!wrap) return;
+    const target = S.tg === 'm' ? S.idx : D.yearIdx[D.yearOf(S.idx)].at(-1);
+    wrap.querySelectorAll('tr.sel').forEach(t => t.classList.remove('sel'));
+    const tr = wrap.querySelector(`tbody tr[data-i="${target}"]`); if (!tr) return;
+    tr.classList.add('sel');
+    wrap.scrollTop = Math.max(0, tr.offsetTop - wrap.clientHeight / 2 + tr.offsetHeight / 2 + (jump ? 0 : 0));
+  }
+  function downloadTableCsv() {
+    const cols = tCols(), rows = tableRows();
+    const n = (v) => (v == null ? '' : String(+v.toFixed(3)).replace('.', ','));
+    const head = cols.map(c => ({ per: 'periodo', v: 'valor_rs_l', yoy: 'yoy_pct', mom: 'mom_pct', dr: 'variacao_rs', ytd: 'acum_ano_pct', ipca: 'ipca_12m_pct', vsbr: 'vs_brasil_pct' }[c[0]]));
+    const lines = [head.join(';')].concat(rows.map(r => cols.map(([k]) => (k === 'per' ? r.per.replace('*', '') : n(r[k]))).join(';')));
+    const blob = new Blob(['﻿' + lines.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
+    const a = el('a'); a.href = URL.createObjectURL(blob); a.download = `anp_tabela_${S.uf}_${S.tf}_${S.tg === 'm' ? 'mensal' : 'anual'}.csv`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   /* ---------- resumo em texto + CSV ---------- */

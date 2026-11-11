@@ -204,3 +204,16 @@ dialog.guide::backdrop{background:rgba(31,42,51,.35)}
 .g-item b span{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
 .g-item p{font-size:13px;line-height:1.5;color:var(--ink2);margin-top:4px}
 .g-item p em{font-style:normal;font-weight:600;color:var(--ink)}
+
+/* tabela de variações */
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.tbl-wrap{margin-top:12px;max-height:440px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{padding:7px 12px;text-align:right;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl thead th{position:sticky;top:0;z-index:1;background:var(--bg);font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.tbl tbody td{font-family:var(--mono);border-bottom:1px solid #eee}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover{background:#faf8f3}
+.tbl tbody tr.sel{background:#FBF1D6;box-shadow:inset 3px 0 0 var(--gold)}
+.tbl td.up{color:var(--red)} .tbl td.dn{color:var(--green)} .tbl td.na{color:#aaa}

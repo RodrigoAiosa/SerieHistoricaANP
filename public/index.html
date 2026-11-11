@@ -231,6 +231,26 @@
       <div id="chart-heat" class="chart" role="img" aria-label="Mapa de calor da razão etanol/gasolina por estado e ano"></div>
       <p class="note" id="n-heat"></p>
     </article>
+    <article class="card wide" id="tabela">
+      <div class="chead">
+        <div>
+          <p class="eyebrow sm" id="tb-sub">Tabela · variações</p>
+          <h3 class="big">Valor e variação <b>mês a mês e ano a ano</b></h3>
+        </div>
+        <div class="actions">
+          <div class="seg sm" id="tb-fuel" role="group" aria-label="Combustível da tabela">
+            <button data-tf="gasolina">Gasolina</button><button data-tf="etanol">Etanol</button><button data-tf="diesel">Diesel</button>
+          </div>
+          <div class="seg sm" id="tb-gran" role="group" aria-label="Periodicidade">
+            <button data-g="m">Mensal</button><button data-g="y">Anual</button>
+          </div>
+          <label class="chk"><input type="checkbox" id="tb-more"> Mais colunas</label>
+          <button class="btn" id="tb-csv" type="button">Baixar CSV da tabela</button>
+        </div>
+      </div>
+      <div class="tbl-wrap" id="tb-wrap" tabindex="0" aria-label="Tabela de valores e variações"></div>
+      <p class="note sm" id="tb-note"></p>
+    </article>
   </section>
 </main>
 
