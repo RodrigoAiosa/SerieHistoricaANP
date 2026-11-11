@@ -71,7 +71,11 @@ def main(raw_dir):
         df["fuel"] = df["produto"].map(product_key)
         df = df.dropna(subset=["fuel"])          # só gasolina, etanol e diesel (ignora GLP, GNV etc.)
         df["venda"] = pd.to_numeric(df["venda"].str.replace(",", "."), errors="coerce")
-        df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce")
+        raw_d = df["data"]
+        df["data"] = pd.to_datetime(raw_d, format="%d/%m/%Y", errors="coerce")
+        iso = df["data"].isna()
+        if iso.any():  # alguns semestres vêm em AAAA-MM-DD
+            df.loc[iso, "data"] = pd.to_datetime(raw_d[iso], format="ISO8601", errors="coerce")
         df = df.dropna(subset=["venda", "data"])  # exige preço e data válidos
         total += len(df)                         # coletas = linhas efetivamente usadas pelo painel
         df["ym"] = df["data"].dt.strftime("%Y-%m")

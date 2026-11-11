@@ -22,6 +22,9 @@ vercel.json
 ```
 
 ## Dados reais
+**Direto no GitHub:** aba *Actions* → *Atualizar dados da ANP* → *Run workflow*. O workflow baixa os CSVs oficiais da ANP, gera `series.json`, `municipios.json`, `meta.json` e o IPCA oficial, e faz o commit (a Vercel republica sozinha). Também roda automaticamente todo dia 5.
+
+**Na sua máquina:**
 Os dados que vêm no repositório são **de demonstração** (aparece o selo "Dados de demonstração"). Para usar a série oficial:
 ```bash
 pip install pandas

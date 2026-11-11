@@ -1,0 +1,59 @@
+name: Atualizar dados da ANP
+
+on:
+  workflow_dispatch:        # botão "Run workflow" na aba Actions
+  schedule:
+    - cron: "0 9 5 * *"     # todo dia 5, 09:00 UTC (a Vercel republica após o commit)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-dados
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pandas
+
+      - name: Baixar CSVs da ANP
+        run: python scripts/download_anp.py raw
+
+      - name: Gerar séries e municípios
+        run: python scripts/build_data.py raw
+
+      - name: Baixar IPCA oficial (Banco Central)
+        run: python scripts/fetch_ipca.py
+
+      - name: Conferir resultado
+        run: |
+          python - <<'PY'
+          import json
+          m = json.load(open("public/data/meta.json"))
+          s = json.load(open("public/data/series.json"))
+          assert m["demo"] is False, "meta.json ainda marca demonstração"
+          assert len(s["months"]) >= 200, f"poucos meses: {len(s['months'])}"
+          assert len(s["gasolina"]) == 27, "faltam estados"
+          print("coletas:", f"{m['coletas']:,}", "| meses:", len(s["months"]), "| último:", s["months"][-1])
+          PY
+
+      - name: Commit dos dados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "Sem mudanças nos dados."
+          else
+            git commit -m "Atualiza dados reais da ANP e IPCA"
+            git push
+          fi
