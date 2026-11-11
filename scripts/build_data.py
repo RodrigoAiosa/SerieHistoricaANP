@@ -45,6 +45,8 @@ def norm(s):
 
 def product_key(p):
     p = norm(p)
+    if "aditivada" in p:      # o painel usa gasolina comum (a aditivada é mais cara e distorceria a média)
+        return None
     for frag, key in PRODUCTS.items():
         if frag in p:
             return key
