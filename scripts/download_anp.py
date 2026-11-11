@@ -97,7 +97,7 @@ def save_csv_from_zip(zpath, out):
     return names
 
 
-def main(out):
+def main(out, desde="0000-00", ate="9999-99"):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     got = 0
@@ -106,6 +106,9 @@ def main(out):
     for year in range(2004, 2023):
         for sem in ("01", "02"):
             name = f"ca-{year}-{sem}.csv"
+            first, last = (f"{year}-01", f"{year}-06") if sem == "01" else (f"{year}-07", f"{year}-12")
+            if last < desde or first > ate:
+                continue
             dest = out / name
             if have(dest, True):
                 print(f"==  {name}  (já baixado)")
@@ -130,6 +133,8 @@ def main(out):
     monthly = discover_monthly(page_html())
     if not monthly:
         sys.exit("Nenhum arquivo mensal (2023+) encontrado na página da ANP: o layout da página mudou?")
+    monthly = [t for t in monthly if desde <= f"{t[0]}-{t[1]}" <= ate]
+    print(f"Intervalo {desde} a {ate}: {len(monthly)} arquivos mensais")
     for year, mo, kind, url in monthly:
         name = f"dsan-{year}-{mo}-{kind}.csv"
         dest = out / name
@@ -143,8 +148,9 @@ def main(out):
         else:
             dest.unlink(missing_ok=True)
             print(f"--  {name}  (404: {url})")
-    last = max((y, m) for y, m, _, _ in monthly)
-    print(f"{got} arquivos em {out}/ · último mês publicado: {last[0]}-{last[1]}")
+    if monthly:
+        last = max((y, m) for y, m, _, _ in monthly)
+        print(f"{got} arquivos em {out}/ · último mês baixado: {last[0]}-{last[1]}")
 
 
 def status(url):
@@ -172,4 +178,6 @@ if __name__ == "__main__":
     if "--list" in sys.argv:
         diagnose()
         sys.exit(0)
-    main(sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "raw")
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    opt = {a.split("=")[0]: a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--") and "=" in a}
+    main(args[0] if args else "raw", opt.get("--desde") or "0000-00", opt.get("--ate") or "9999-99")

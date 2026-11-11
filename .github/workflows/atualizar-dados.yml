@@ -2,6 +2,15 @@ name: Atualizar dados da ANP
 
 on:
   workflow_dispatch:        # botão "Run workflow" na aba Actions
+    inputs:
+      desde:
+        description: "Baixar só a partir de AAAA-MM (vazio = tudo). Com intervalo, só baixa e guarda em cache (não publica)"
+        required: false
+        default: ""
+      ate:
+        description: "Baixar só até AAAA-MM (vazio = último disponível)"
+        required: false
+        default: ""
   schedule:
     - cron: "0 9 5 * *"     # todo dia 5, 09:00 UTC (a Vercel republica após o commit)
 
@@ -33,15 +42,18 @@ jobs:
           restore-keys: anp-raw-
 
       - name: Baixar CSVs da ANP
-        run: python scripts/download_anp.py raw
+        run: python scripts/download_anp.py raw --desde="${{ inputs.desde }}" --ate="${{ inputs.ate }}"
 
       - name: Gerar séries e municípios
+        if: ${{ inputs.desde == '' && inputs.ate == '' }}
         run: python scripts/build_data.py raw
 
       - name: Baixar IPCA oficial (Banco Central)
+        if: ${{ inputs.desde == '' && inputs.ate == '' }}
         run: python scripts/fetch_ipca.py
 
       - name: Conferir resultado
+        if: ${{ inputs.desde == '' && inputs.ate == '' }}
         run: |
           python - <<'PY'
           import json
@@ -58,6 +70,7 @@ jobs:
           PY
 
       - name: Commit dos dados
+        if: ${{ inputs.desde == '' && inputs.ate == '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
