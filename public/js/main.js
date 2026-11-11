@@ -440,7 +440,7 @@
       ['Quem acompanha o Brasil', '#chart-crank', 'Correlação de cada estado com a média nacional. Valores baixos indicam estados cujo preço se move mais por conta própria.'],
     ]],
     ['Resumo e dados', [
-      ['Tabela de variações', '#tabela', 'Período, valor, %YoY (contra o mesmo mês do ano anterior) e %MoM (contra o mês anterior), do mais recente para o mais antigo. Dá para trocar o combustível, ver por ano e ligar “Mais colunas” (Δ R$, % no ano, IPCA 12m e vs. Brasil). A linha dourada é o mês selecionado e há botão para baixar CSV.'],
+      ['Tabela de variações', '#tabela', 'Período, valor, %YoY (contra o mesmo mês do ano anterior) e %MoM (contra o mês anterior), do mais recente para o mais antigo. Dá para trocar o combustível, ver por ano e ligar “Mais colunas” (Δ R$, % no ano, mínimo e máximo para ver a volatilidade, IPCA 12m e vs. Brasil). A linha dourada é o mês selecionado e há botão para baixar CSV.'],
       ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
       ['Fonte e avisos', '.foot', 'Dados da ANP (levantamento de preços de revenda). “Dados de demonstração” indica números sintéticos; “IPCA aproximado” indica que o índice oficial ainda não foi carregado.'],
     ]],
@@ -608,6 +608,7 @@
           yoy: i >= 12 ? (a[i] / a[i - 12] - 1) * 100 : null,
           mom: i >= 1 ? (a[i] / a[i - 1] - 1) * 100 : null,
           dr: i >= 1 ? a[i] - a[i - 1] : null,
+          mn: d3.min(a.slice(Math.max(0, i - 11), i + 1)), mx: d3.max(a.slice(Math.max(0, i - 11), i + 1)),
           ytd: i > yi ? (a[i] / a[yi - 1 >= 0 ? yi - 1 : yi] - 1) * 100 : null,
           ipca: i >= 12 ? (ip[i] / ip[i - 12] - 1) * 100 : null,
           vsbr: S.uf !== 'BR' ? (a[i] / br[i] - 1) * 100 : null,
@@ -621,7 +622,7 @@
         rows.push({
           i: last, per: ix.length < 12 ? `${yr}*` : String(yr), v,
           yoy: prev ? (v / prev.v - 1) * 100 : null, mom: null,
-          dr: prev ? v - prev.v : null, ytd: null, ipca: prev ? (ipv / prev.ip - 1) * 100 : null,
+          dr: prev ? v - prev.v : null, mn: d3.min(ix, k => a[k]), mx: d3.max(ix, k => a[k]), ytd: null, ipca: prev ? (ipv / prev.ip - 1) * 100 : null,
           vsbr: S.uf !== 'BR' ? (v / d3.mean(ix, k => br[k]) - 1) * 100 : null,
         });
         prev = { v, ip: ipv };
@@ -632,14 +633,14 @@
   const tCols = () => {
     const c = [['per', 'Período'], ['v', `Valor (R$/L)`], ['yoy', '% YoY']];
     if (S.tg === 'm') c.push(['mom', '% MoM']);
-    if (S.tm) { c.push(['dr', S.tg === 'm' ? 'Δ R$ no mês' : 'Δ R$ no ano']); if (S.tg === 'm') c.push(['ytd', '% no ano']); c.push(['ipca', 'IPCA 12m']); if (S.uf !== 'BR') c.push(['vsbr', 'vs. Brasil']); }
+    if (S.tm) { c.push(['dr', S.tg === 'm' ? 'Δ R$ no mês' : 'Δ R$ no ano']); if (S.tg === 'm') c.push(['ytd', '% no ano']); c.push(['mn', S.tg === 'm' ? 'Mín. 12m' : 'Mín. do ano'], ['mx', S.tg === 'm' ? 'Máx. 12m' : 'Máx. do ano']); c.push(['ipca', 'IPCA 12m']); if (S.uf !== 'BR') c.push(['vsbr', 'vs. Brasil']); }
     return c;
   };
   function buildTable() {
     const wrap = $('#tb-wrap'); if (!wrap) return;
     const cols = tCols(), rows = tableRows();
     S._tbBuilt = true;
-    const fmt = { per: (r) => r.per, v: (r) => R$(r.v), dr: (r) => (r.dr == null ? null : `${r.dr > 0 ? '+' : r.dr < 0 ? '−' : ''}${f2.format(Math.abs(r.dr))}`) };
+    const fmt = { per: (r) => r.per, v: (r) => R$(r.v), mn: (r) => R$(r.mn), mx: (r) => R$(r.mx), dr: (r) => (r.dr == null ? null : `${r.dr > 0 ? '+' : r.dr < 0 ? '−' : ''}${f2.format(Math.abs(r.dr))}`) };
     const cell = (r, [k]) => {
       if (fmt[k]) return `<td>${fmt[k](r) ?? '—'}</td>`;
       const v = r[k]; if (v == null) return '<td class="na">—</td>';
@@ -664,7 +665,7 @@
   function downloadTableCsv() {
     const cols = tCols(), rows = tableRows();
     const n = (v) => (v == null ? '' : String(+v.toFixed(3)).replace('.', ','));
-    const head = cols.map(c => ({ per: 'periodo', v: 'valor_rs_l', yoy: 'yoy_pct', mom: 'mom_pct', dr: 'variacao_rs', ytd: 'acum_ano_pct', ipca: 'ipca_12m_pct', vsbr: 'vs_brasil_pct' }[c[0]]));
+    const head = cols.map(c => ({ per: 'periodo', v: 'valor_rs_l', yoy: 'yoy_pct', mom: 'mom_pct', dr: 'variacao_rs', ytd: 'acum_ano_pct', mn: 'min_rs_l', mx: 'max_rs_l', ipca: 'ipca_12m_pct', vsbr: 'vs_brasil_pct' }[c[0]]));
     const lines = [head.join(';')].concat(rows.map(r => cols.map(([k]) => (k === 'per' ? r.per.replace('*', '') : n(r[k]))).join(';')));
     const blob = new Blob(['﻿' + lines.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
     const a = el('a'); a.href = URL.createObjectURL(blob); a.download = `anp_tabela_${S.uf}_${S.tf}_${S.tg === 'm' ? 'mensal' : 'anual'}.csv`;
