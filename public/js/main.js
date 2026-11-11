@@ -4,20 +4,20 @@
 
   /* ---------- constantes ---------- */
   const FUELS = [
-    { k: 'gasolina', n: 'Gasolina', c: '#d49a1f' },
-    { k: 'etanol', n: 'Etanol', c: '#5b8c6a' },
-    { k: 'diesel', n: 'Diesel', c: '#b5503a' },
+    { k: 'gasolina', n: 'Gasolina', c: '#B87D00' },
+    { k: 'etanol', n: 'Etanol', c: '#2E7D4F' },
+    { k: 'diesel', n: 'Diesel', c: '#1F4E79' },
   ];
   const FUEL = Object.fromEntries(FUELS.map(f => [f.k, f]));
   const REGIONS = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
   const TYPES = {
-    greve: { n: 'Greve', c: '#d49a1f' },
+    greve: { n: 'Greve', c: '#B87D00' },
     pandemia: { n: 'Pandemia', c: '#7a56d6' },
-    guerra: { n: 'Guerra', c: '#d6443b' },
-    crise: { n: 'Crise', c: '#8a8a8a' },
-    politica: { n: 'Política', c: '#3a6ea5' },
-    petrobras: { n: 'Petrobras', c: '#b5503a' },
-    etanol: { n: 'Etanol', c: '#5b8c6a' },
+    guerra: { n: 'Guerra', c: '#C0392B' },
+    crise: { n: 'Crise', c: '#8C5E3C' },
+    politica: { n: 'Política', c: '#5C6B7A' },
+    petrobras: { n: 'Petrobras', c: '#0E7C86' },
+    etanol: { n: 'Etanol', c: '#2E7D4F' },
   };
   const ERAS = [
     { n: 'Lula', from: '2004-05', to: '2010-12' },
@@ -29,6 +29,7 @@
   const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const MESES_L = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   const THRESH = 0.70;
+  const RAMP = { gasolina: ['#F8EBC8', '#7A5200'], etanol: ['#DCEBDF', '#1C4F31'], diesel: ['#DCE6F1', '#12304D'] };
 
   const nf = (d) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const f3 = nf(3), f1 = nf(1), f2 = nf(2), f0 = nf(0);
@@ -247,12 +248,12 @@
         <div class="hint">vs mês anterior</div>${sparkSvg(a, f.c, i)}</div>`);
     }
     const r = rat()[i], rp = rat()[p], dpp = (r - rp) * 100, ok = r < THRESH;
-    cards.push(`<div class="kpi" style="--accent:${ok ? '#5b8c6a' : '#b5503a'}">
+    cards.push(`<div class="kpi" style="--accent:${ok ? '#2E7D4F' : '#C0392B'}">
       <div class="lab">Etanol vale a pena? · ${S.uf === 'BR' ? 'Brasil' : S.uf}</div>
       <div class="val">${f1.format(r * 100)}%</div>
       <span class="pill ${Math.abs(dpp) < .05 ? 'flat' : dpp > 0 ? 'up' : 'down'}">${dpp > 0.05 ? '▲' : dpp < -0.05 ? '▼' : '■'} ${f1.format(Math.abs(dpp))} p.p.</span>
       <div class="hint">${ok ? '<span class="good">✓ compensa — abaixo de 70%</span>' : '<span class="bad">✗ não compensa — acima de 70%</span>'}</div>
-      ${sparkSvg(rat(), ok ? '#5b8c6a' : '#b5503a', i)}</div>`);
+      ${sparkSvg(rat(), ok ? '#2E7D4F' : '#C0392B', i)}</div>`);
 
     // ranking e comparação com a média do Brasil (gasolina)
     if (S.uf === 'BR') {
@@ -262,11 +263,11 @@
         <div class="val">—</div><div class="hint">Média simples dos 27 estados.</div></div>`);
     } else {
       const rank = D.ufs.map(u => ({ u, v: DT().gasolina[u][i] })).sort((a, b) => b.v - a.v).findIndex(o => o.u === S.uf) + 1;
-      cards.push(`<div class="kpi" style="--accent:#d49a1f"><div class="lab">Posição no ranking</div>
+      cards.push(`<div class="kpi" style="--accent:#B87D00"><div class="lab">Posição no ranking</div>
         <div class="val">${rank}º <span class="of">de ${D.ufs.length}</span></div>
         <div class="hint">${D.ufs.length - rank} estados mais baratos<br>↑ gasolina mais cara</div></div>`);
       const br = DT().gasolina.BR[i], v = DT().gasolina[S.uf][i], diff = v - br, pc = (v / br - 1) * 100;
-      cards.push(`<div class="kpi" style="--accent:${diff > 0 ? '#b5503a' : '#5b8c6a'}"><div class="lab">Contra a média do Brasil</div>
+      cards.push(`<div class="kpi" style="--accent:${diff > 0 ? '#C0392B' : '#2E7D4F'}"><div class="lab">Contra a média do Brasil</div>
         <div class="val">${pctTxt(pc)}</div>
         <div class="hint"><span class="${diff > 0 ? 'bad' : 'good'}">${diff > 0 ? '+' : '−'}R$ ${f3.format(Math.abs(diff))}</span><br>média BR ${R$(br)} · gasolina</div></div>`);
     }
@@ -374,11 +375,11 @@
 
     // cursor do mês selecionado
     const cur = svg.append('g');
-    cur.append('line').attr('x1', x(i)).attr('x2', x(i)).attr('y1', 42).attr('y2', H - m.b).attr('stroke', '#8a6a1f').attr('stroke-width', 1);
+    cur.append('line').attr('x1', x(i)).attr('x2', x(i)).attr('y1', 42).attr('y2', H - m.b).attr('stroke', '#8A5A00').attr('stroke-width', 1);
     for (const f of fuels)
       cur.append('circle').attr('cx', x(i)).attr('cy', y(ser(f.k)[i])).attr('r', 4).attr('fill', f.c).attr('stroke', '#fff').attr('stroke-width', 1.5);
     cur.append('text').attr('x', Math.min(W - m.r, Math.max(m.l + 20, x(i)))).attr('y', H - 8 - 12).attr('text-anchor', i > D.N * .85 ? 'end' : 'start')
-      .style('font', '500 10px var(--mono)').attr('fill', '#8a6a1f').text(`  ${D.label(i)}  `);
+      .style('font', '500 10px var(--mono)').attr('fill', '#8A5A00').text(`  ${D.label(i)}  `);
 
     // interação
     const guide = svg.append('line').attr('y1', 42).attr('y2', H - m.b).attr('stroke', '#bbb').attr('stroke-dasharray', '3 3').style('display', 'none');
@@ -387,7 +388,7 @@
         const k = Math.max(0, Math.min(D.N - 1, Math.round(x.invert(d3.pointer(e)[0]))));
         guide.style('display', null).attr('x1', x(k)).attr('x2', x(k));
         showTip(e, `<b>${D.label(k)}</b> · ${ufName(S.uf)}<br>` + fuels.map(f =>
-          `<span class="mono" style="color:${f.c === '#b5503a' ? '#e58b78' : f.c}">●</span> ${f.n} <span class="mono">${R$(ser(f.k)[k])}</span>`).join('<br>'));
+          `<span class="mono" style="color:${f.c === '#1F4E79' ? '#7FB0E0' : f.c === '#2E7D4F' ? '#6FCF97' : f.c}">●</span> ${f.n} <span class="mono">${R$(ser(f.k)[k])}</span>`).join('<br>'));
       })
       .on('mouseleave', () => { guide.style('display', 'none'); hideTip(); })
       .on('click', (e) => { stop(); setIdx(Math.max(0, Math.min(D.N - 1, Math.round(x.invert(d3.pointer(e)[0]))))); });
@@ -416,7 +417,7 @@
     for (const row of rows) {
       const cy = y(row.r) + y.bandwidth() / 2, sel = row.r === selRegion;
       svg.append('text').attr('x', m.l - 10).attr('y', cy + 3.5).attr('text-anchor', 'end')
-        .style('font', `${sel ? 600 : 400} 11px var(--sans)`).attr('fill', sel ? '#a8761a' : '#555').text(row.r);
+        .style('font', `${sel ? 600 : 400} 11px var(--sans)`).attr('fill', sel ? '#8A5A00' : '#555').text(row.r);
       const [lo, hi] = d3.extent(row.vals, o => o.v);
       svg.append('line').attr('x1', x(lo)).attr('x2', x(hi)).attr('y1', cy).attr('y2', cy).attr('stroke', sel ? '#d9b46a' : '#cfcfcf').attr('stroke-width', 2);
       svg.selectAll(null).data(row.vals).join('circle')
@@ -504,13 +505,13 @@
     }
     for (const t of x.ticks(5)) ax.append('text').attr('x', x(t)).attr('y', H - 14).attr('text-anchor', 'middle').text(`R$ ${f2.format(t)}`);
     ax.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 2).attr('text-anchor', 'middle').text('preço da gasolina →');
-    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(70)).attr('y2', y(70)).attr('stroke', '#5b8c6a').attr('stroke-dasharray', '4 3');
+    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(70)).attr('y2', y(70)).attr('stroke', '#2E7D4F').attr('stroke-dasharray', '4 3');
     svg.append('text').attr('x', m.l + 6).attr('y', y(70) + 12).style('font', '400 9.5px var(--mono)').attr('fill', '#4d7b5b').text('o etanol compensa');
     const dots = svg.selectAll('g.p').data(pts).join('g').attr('class', 'p').style('cursor', 'pointer')
       .attr('transform', d => `translate(${x(d.gas)},${y(d.r)})`)
       .on('mousemove', (e, d) => showTip(e, `<b>${d.u} — ${D.byUf[d.u].nome}</b><br>gasolina <span class="mono">${R$(d.gas)}</span><br>etanol/gasolina <span class="mono">${f1.format(d.r)}%</span><br>${d.r < 70 ? '✓ compensa' : '✗ não compensa'}`))
       .on('mouseleave', hideTip).on('click', (_, d) => setUf(S.uf === d.u ? 'BR' : d.u));
-    const col = d => (d.r < 70 ? '#4d7b5b' : '#c0624c');
+    const col = d => (d.r < 70 ? '#2E7D4F' : '#C0392B');
     dots.append('circle').attr('r', d => (d.u === S.uf ? 6.5 : 3.8)).attr('fill', col)
       .attr('stroke', d => (d.u === S.uf ? '#333' : 'none')).attr('stroke-width', 1.5).attr('opacity', d => (S.uf === 'BR' || d.u === S.uf ? 1 : .8));
     dots.append('text').attr('y', -7).attr('text-anchor', 'middle')
@@ -529,8 +530,8 @@
     const val = (u) => (isRatio ? D.ratio[u][i] * 100 : DT()[met][u][i]);
     const vals = D.ufs.map(val), [lo, hi] = d3.extent(vals);
     const color = isRatio
-      ? d3.scaleLinear().domain([Math.min(lo, 62), 70, 70.01, Math.max(hi, 80)]).range(['#4f8f5e', '#c4dcc8', '#e9bfb2', '#a8372b']).clamp(true)
-      : d3.scaleSequential(d3.interpolateRgb('#f6e7c1', FUEL[met].c === '#d49a1f' ? '#9a5f00' : FUEL[met].c === '#5b8c6a' ? '#2f5f40' : '#7a2b1c')).domain([lo, hi]);
+      ? d3.scaleLinear().domain([Math.min(lo, 62), 70, 70.01, Math.max(hi, 80)]).range(['#2E7D4F', '#C9E1D0', '#F1CFC8', '#C0392B']).clamp(true)
+      : d3.scaleSequential(d3.interpolateRgb(...RAMP[met])).domain([lo, hi]);
     const [, , vw, vh] = D.geo.viewBox.split(' ').map(Number);
     const W = Math.min(host.clientWidth, 560), H = W * vh / vw;
     host.innerHTML = '';
@@ -548,7 +549,7 @@
     });
     if (S.uf !== 'BR') g.selectAll('path').filter(u => u === S.uf).raise();
     $('#s-map').textContent = `${isRatio ? 'Etanol ÷ gasolina' : FUEL[met].n + (S.real ? ' · R$ reais' : ' · R$/litro')} · ${D.label(i)} · clique num estado`;
-    const grad = isRatio ? 'linear-gradient(90deg,#4f8f5e,#c4dcc8 50%,#e9bfb2 50%,#a8372b)' : `linear-gradient(90deg,#f6e7c1,${FUEL[met].c})`;
+    const grad = isRatio ? 'linear-gradient(90deg,#2E7D4F,#C9E1D0 50%,#F1CFC8 50%,#C0392B)' : `linear-gradient(90deg,${RAMP[met][0]},${RAMP[met][1]})`;
     $('#map-legend').innerHTML = `<span>${unit(lo)}</span><i style="background:${grad}"></i><span>${unit(hi)}</span>${isRatio ? '<span>· 70% = ponto de equilíbrio</span>' : ''}`;
   }
 
@@ -570,8 +571,8 @@
     const [lo, hi] = d3.extent(sorted, v), w = d3.scaleLinear([lo * .9, hi], [8, 100]);
     const row = (m, c) => `<div class="rw" data-uf="${m.uf}"${S.uf !== 'BR' && m.uf === S.uf ? ' style="background:#fdf3dc;border-radius:4px"' : ''}><span class="nm">${m.n}<small>${m.uf}</small></span><span><div class="bar" style="--c:${c};width:${w(v(m))}%"></div></span><span class="v">${R$(v(m))}</span></div>`;
     const avg = d3.mean(sorted, v);
-    box.innerHTML = `<h4>Mais caros</h4>${top.map(m => row(m, '#b5503a')).join('')}<div class="gap"></div>
-      <h4>Mais baratos</h4>${bot.map(m => row(m, '#5b8c6a')).join('')}
+    box.innerHTML = `<h4>Mais caros</h4>${top.map(m => row(m, '#C0392B')).join('')}<div class="gap"></div>
+      <h4>Mais baratos</h4>${bot.map(m => row(m, '#2E7D4F')).join('')}
       <p class="note" style="margin-top:8px">Média do recorte: <b style="color:var(--ink)">${R$(avg)}</b> · diferença entre extremos: ${R$(v(top[0]) - v(bot[0]))}${fallback ? `<br>Poucos municípios de ${S.uf} nos dados: mostrando o Brasil, com ${S.uf} destacado.` : ''}${inWin ? '' : `<br>Ranking disponível só para ${D.label(first)} – ${D.label(last)}; mostrando ${D.label(ci)}.`}</p>`;
     box.querySelectorAll('.rw').forEach(r => r.onclick = () => setUf(S.uf === r.dataset.uf ? 'BR' : r.dataset.uf));
   }
@@ -588,7 +589,7 @@
     const m = { l: 30, r: 4, t: 4, b: 30 };
     const x = d3.scaleBand(yrs, [m.l, W - m.r]).paddingInner(.04);
     const y = d3.scaleBand(order, [m.t, H - m.b]).paddingInner(.06);
-    const color = d3.scaleLinear().domain([.55, .70, .7001, .88]).range(['#4f8f5e', '#c4dcc8', '#e9bfb2', '#a8372b']).clamp(true);
+    const color = d3.scaleLinear().domain([.55, .70, .7001, .88]).range(['#2E7D4F', '#C9E1D0', '#F1CFC8', '#C0392B']).clamp(true);
     const rowsG = svg.append('g');
     for (const u of order) {
       rowsG.append('text').attr('class', `hl-${u}`).attr('x', m.l - 5).attr('y', y(u) + y.bandwidth() / 2 + 3).attr('text-anchor', 'end')
