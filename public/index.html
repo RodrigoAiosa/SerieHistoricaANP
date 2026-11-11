@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brasil Combustíveis · Série histórica da ANP 2004–2026</title>
+  <meta name="description" content="Painel interativo com a série histórica de preços de gasolina, etanol e diesel da ANP: linha do tempo, regra dos 70%, mapa de calor por estado e notícias.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23333%27/%3E%3Cpath d=%27M5 22l7-7 5 4 10-11%27 fill=%27none%27 stroke=%27%23f2c46d%27 stroke-width=%273%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">Brasil <b>Combustíveis</b></div>
+  <label class="ctl"><span>Estado</span>
+    <select id="sel-uf" aria-label="Estado"></select>
+  </label>
+  <label class="ctl"><span>Combustível</span>
+    <select id="sel-fuel" aria-label="Combustível">
+      <option value="all">Os três</option>
+      <option value="gasolina">Gasolina</option>
+      <option value="etanol">Etanol</option>
+      <option value="diesel">Diesel</option>
+    </select>
+  </label>
+  <span id="demo-flag" class="demo-flag" hidden title="Os números abaixo são sintéticos. Rode scripts/build_data.py com os CSVs da ANP para usar dados reais.">Dados de demonstração</span>
+  <span class="spacer"></span>
+  <button id="chip-uf" class="chip" hidden title="Limpar seleção"></button>
+</header>
+
+<section class="hero" id="hero">
+  <p class="eyebrow">Série histórica da ANP · <span id="hero-range">2004 – 2026</span></p>
+  <div class="counter" id="counter" aria-live="off">0</div>
+  <div class="rule"><i id="rule-fill"></i></div>
+  <p class="caption" id="hero-caption">coletas de preço na bomba</p>
+</section>
+
+<div class="timebar">
+  <button id="btn-play" class="btn" aria-label="Reproduzir linha do tempo">▶</button>
+  <input id="slider" type="range" min="0" max="0" value="0" aria-label="Mês selecionado">
+  <span id="lbl-month" class="month-lbl">jun/2026</span>
+  <button id="btn-last" class="btn txt">Mais recente</button>
+</div>
+
+<main class="layout">
+  <aside class="card feed" aria-label="O que aconteceu">
+    <div class="feed-head">
+      <h2>O que aconteceu</h2>
+      <p class="sub" id="feed-sub"></p>
+      <select id="sel-type" aria-label="Filtrar por tipo"><option value="all">Todos os tipos</option></select>
+    </div>
+    <div id="feed-list" class="feed-list"></div>
+  </aside>
+
+  <section class="content">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="row r1">
+      <article class="card">
+        <div class="chead">
+          <div><h3 id="t-line">Para onde foi o preço</h3><p class="sub" id="s-line"></p></div>
+          <div class="legend" id="legend-line"></div>
+        </div>
+        <div id="chart-line" class="chart" role="img" aria-label="Preço médio mensal de gasolina, etanol e diesel"></div>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Onde é mais caro abastecer</h3><p class="sub" id="s-dumb">R$/litro · média por região</p></div>
+        </div>
+        <div id="chart-dumb" class="chart" role="img" aria-label="Preço médio por região"></div>
+      </article>
+    </div>
+
+    <div class="row r2">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Quanto subiu em cada ano</h3><p class="sub" id="s-bars"></p></div>
+          <div class="legend" id="legend-bars"></div>
+        </div>
+        <div id="chart-bars" class="chart" role="img" aria-label="Variação anual do preço médio"></div>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Vale a pena abastecer com etanol?</h3><p class="sub">abaixo dos 70% compensa · clique num estado</p></div>
+        </div>
+        <div id="chart-scatter" class="chart" role="img" aria-label="Razão etanol/gasolina por estado"></div>
+        <p class="note" id="n-scatter"></p>
+      </article>
+    </div>
+
+    <article class="card wide">
+      <div class="chead">
+        <div>
+          <p class="eyebrow sm">Etanol ÷ gasolina · 27 estados · <span id="heat-range"></span></p>
+          <h3 class="big">Onde e quando o etanol <b>compensou</b></h3>
+        </div>
+        <div class="legend" id="legend-heat"></div>
+      </div>
+      <div id="chart-heat" class="chart" role="img" aria-label="Mapa de calor da razão etanol/gasolina por estado e ano"></div>
+      <p class="note" id="n-heat"></p>
+    </article>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="brandline">Brasil <b>Combustíveis</b></p>
+  <p class="eyebrow">HTML + D3 · sem Power BI</p>
+  <p class="src" id="src">Fonte: ANP</p>
+</footer>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
