@@ -7,7 +7,8 @@ Uso:
     # levantamento de preços de combustíveis" da ANP para a pasta raw/
     python scripts/build_data.py raw/
 
-Saída: public/data/series.json e public/data/meta.json (demo=false).
+Saída: series.json, municipios.json e meta.json (demo=false).
+Para o IPCA oficial: python scripts/fetch_ipca.py
 Mantém public/data/events.json como está (edite à mão).
 
 Observação: os layouts dos CSVs da ANP variaram ao longo dos anos. Este script
@@ -25,6 +26,7 @@ OUT = Path(__file__).resolve().parent.parent / "public" / "data"
 
 COLS = {  # nome normalizado -> campo interno
     "estado - sigla": "uf", "estado": "uf",
+    "municipio": "mun",
     "produto": "produto",
     "data da coleta": "data",
     "valor de venda": "venda",
@@ -53,7 +55,7 @@ def main(raw_dir):
     files = sorted(Path(raw_dir).glob("*.csv"))
     if not files:
         sys.exit(f"Nenhum CSV em {raw_dir}")
-    parts, total = [], 0
+    parts, mparts, total = [], [], 0
     for f in files:
         try:
             df = pd.read_csv(f, sep=";", decimal=",", encoding="utf-8",
@@ -74,6 +76,8 @@ def main(raw_dir):
         df = df.dropna(subset=["venda", "data"])
         df["ym"] = df["data"].dt.strftime("%Y-%m")
         parts.append(df.groupby(["fuel", "uf", "ym"])["venda"].agg(["sum", "count"]).reset_index())
+        if "mun" in df.columns:
+            mparts.append(df.groupby(["fuel", "uf", "mun", "ym"])["venda"].agg(["sum", "count"]).reset_index())
         print(f"{f.name}: {len(df):,} linhas úteis")
 
     agg = pd.concat(parts).groupby(["fuel", "uf", "ym"]).sum().reset_index()
@@ -92,6 +96,25 @@ def main(raw_dir):
             s = s.interpolate(limit_direction="both").round(3)
             out[fuel][uf] = s.tolist()
     (OUT / "series.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    if mparts:  # ranking de municípios: últimos 24 meses, top MUN_TOP por nº de coletas
+        W, MUN_TOP = 24, 300
+        mm = pd.concat(mparts).groupby(["fuel", "uf", "mun", "ym"]).sum().reset_index()
+        mm["mun"] = mm["mun"].str.title()
+        wm = months[-W:]
+        mm = mm[mm["ym"].isin(wm)]
+        top = (mm.groupby(["uf", "mun"])["count"].sum().nlargest(MUN_TOP).index)
+        items = []
+        for uf, mun in top:
+            sub = mm[(mm["uf"] == uf) & (mm["mun"] == mun)]
+            it = {"n": mun, "uf": uf}
+            for fuel in ("gasolina", "etanol", "diesel"):
+                v = sub[sub["fuel"] == fuel].set_index("ym")
+                v = (v["sum"] / v["count"]).reindex(wm).interpolate(limit_direction="both").round(3)
+                it[fuel] = v.tolist()
+            items.append(it)
+        (OUT / "municipios.json").write_text(json.dumps({"months": wm, "items": items},
+            ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print(f"municipios.json: {len(items)} municípios")
     (OUT / "meta.json").write_text(json.dumps({
         "demo": False, "coletas": int(total),
         "fonte": "ANP — Série histórica do levantamento de preços de combustíveis",

@@ -169,3 +169,43 @@ print("Etanol compensa em jun/2026 (demo):", winners, len(winners))
     "atualizado": months[-1],
 }, ensure_ascii=False, indent=2), encoding="utf-8")
 print("ok ->", OUT)
+
+
+# ---------------------------------------------------------------------------
+# IPCA APROXIMADO (taxas anuais conhecidas distribuídas de forma geométrica
+# pelos meses; 2025-26 são estimativas). Para o índice oficial, rode
+# scripts/fetch_ipca.py (série 433 do SGS/Banco Central).
+IPCA_ANUAL = {2004: 7.60, 2005: 5.69, 2006: 3.14, 2007: 4.46, 2008: 5.90, 2009: 4.31,
+              2010: 5.91, 2011: 6.50, 2012: 5.84, 2013: 5.91, 2014: 6.41, 2015: 10.67,
+              2016: 6.29, 2017: 2.95, 2018: 3.75, 2019: 4.31, 2020: 4.52, 2021: 10.06,
+              2022: 5.79, 2023: 4.62, 2024: 4.83, 2025: 4.30, 2026: 4.00}
+idx, level = [], 100.0
+for i, mm in enumerate(months):
+    if i:
+        yr = int(mm[:4])
+        level *= (1 + IPCA_ANUAL[yr] / 100) ** (1 / 12)
+    idx.append(round(level, 4))
+(OUT / "ipca.json").write_text(json.dumps({
+    "aproximado": True, "base": months[0], "indice": idx,
+    "fonte": "IPCA/IBGE (aproximação a partir de taxas anuais)",
+}, separators=(",", ":")), encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# MUNICÍPIOS (demo): as 27 capitais, últimos 24 meses, em torno da série do estado.
+CAPITAIS = {"AC": "Rio Branco", "AL": "Maceió", "AP": "Macapá", "AM": "Manaus", "BA": "Salvador",
+            "CE": "Fortaleza", "DF": "Brasília", "ES": "Vitória", "GO": "Goiânia", "MA": "São Luís",
+            "MT": "Cuiabá", "MS": "Campo Grande", "MG": "Belo Horizonte", "PA": "Belém",
+            "PB": "João Pessoa", "PR": "Curitiba", "PE": "Recife", "PI": "Teresina",
+            "RJ": "Rio de Janeiro", "RN": "Natal", "RS": "Porto Alegre", "RO": "Porto Velho",
+            "RR": "Boa Vista", "SC": "Florianópolis", "SP": "São Paulo", "SE": "Aracaju", "TO": "Palmas"}
+W = 24
+items = []
+for uf, nome in CAPITAIS.items():
+    f = 1 + random.gauss(0, .018)
+    it = {"n": nome, "uf": uf}
+    for fuel in ("gasolina", "etanol", "diesel"):
+        it[fuel] = [round(v * f * (1 + random.gauss(0, .004)), 3) for v in series[fuel][uf][-W:]]
+    items.append(it)
+(OUT / "municipios.json").write_text(json.dumps(
+    {"months": months[-W:], "items": items}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+print("ipca/municipios ok")

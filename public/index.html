@@ -26,6 +26,10 @@
       <option value="diesel">Diesel</option>
     </select>
   </label>
+  <div class="seg" role="group" aria-label="Valores">
+    <button id="v-nom" class="on" title="Preços como foram coletados">Nominal</button>
+    <button id="v-real" title="Corrigidos pelo IPCA para reais de hoje">Real (IPCA)</button>
+  </div>
   <span id="demo-flag" class="demo-flag" hidden title="Os números abaixo são sintéticos. Rode scripts/build_data.py com os CSVs da ANP para usar dados reais.">Dados de demonstração</span>
   <span class="spacer"></span>
   <button id="chip-uf" class="chip" hidden title="Limpar seleção"></button>
@@ -91,6 +95,26 @@
       </article>
     </div>
 
+    <div class="row r3">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Mapa do Brasil</h3><p class="sub" id="s-map"></p></div>
+          <div class="seg sm" id="map-metric" role="group" aria-label="Métrica do mapa">
+            <button data-m="gasolina">Gasolina</button><button data-m="etanol">Etanol</button>
+            <button data-m="diesel">Diesel</button><button data-m="ratio">Etanol ÷ Gas.</button>
+          </div>
+        </div>
+        <div id="chart-map" class="chart" role="img" aria-label="Mapa do Brasil colorido por estado"></div>
+        <div id="map-legend" class="map-legend"></div>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3 id="t-mun">Municípios mais caros e mais baratos</h3><p class="sub" id="s-mun"></p></div>
+        </div>
+        <div id="mun-list" class="mun"></div>
+      </article>
+    </div>
+
     <article class="card wide">
       <div class="chead">
         <div>
@@ -109,6 +133,7 @@
   <p class="brandline">Brasil <b>Combustíveis</b></p>
   <p class="eyebrow">HTML + D3 · sem Power BI</p>
   <p class="src" id="src">Fonte: ANP</p>
+  <p class="src" id="src2">Mapa: @svg-maps/brazil (CC BY 4.0)</p>
 </footer>
 
 <div id="tip" class="tip" role="tooltip" hidden></div>

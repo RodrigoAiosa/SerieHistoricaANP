@@ -36,22 +36,22 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all' };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', real: false, mapMetric: null };
   let D = null;           // dados processados
   let timer = null;
 
   /* ---------- carga ---------- */
-  Promise.all(['series', 'events', 'meta'].map(n => fetch(`data/${n}.json`).then(r => {
+  Promise.all(['series', 'events', 'meta', 'brasil-uf', 'ipca', 'municipios'].map(n => fetch(`data/${n}.json`).then(r => {
     if (!r.ok) throw new Error(`${n}.json: ${r.status}`);
     return r.json();
-  }))).then(([series, events, meta]) => init(series, events, meta))
+  }))).then(([series, events, meta, geo, ipca, mun]) => init(series, events, meta, geo, ipca, mun))
     .catch(err => {
       document.querySelector('.layout').innerHTML =
         `<div class="card" style="grid-column:1/-1"><b>Não foi possível carregar os dados.</b><p class="sub">${err.message}</p></div>`;
       console.error(err);
     });
 
-  function init(series, events, meta) {
+  function init(series, events, meta, geo, ipca, mun) {
     const months = series.months, N = months.length;
     const states = series.states, ufs = states.map(s => s.uf);
     const byUf = Object.fromEntries(states.map(s => [s.uf, s]));
@@ -77,7 +77,13 @@
     const evs = events.map(e => ({ ...e, i: Math.max(0, months.indexOf(e.date)) }))
       .filter(e => months.includes(e.date)).sort((a, b) => a.i - b.i);
 
-    D = { months, N, states, ufs, byUf, data, ratio, years, yearIdx, yearOf, monthOf, label, ym, evs, meta };
+    // preços reais: reais de hoje (último mês) via IPCA
+    const defl = ipca.indice.map(v => ipca.indice[ipca.indice.length - 1] / v);
+    const dataReal = {};
+    for (const f of FUELS) { dataReal[f.k] = {}; for (const u of [...ufs, 'BR']) dataReal[f.k][u] = data[f.k][u].map((v, i) => v * defl[i]); }
+    const munMonths = mun.months.map(m => months.indexOf(m));
+
+    D = { dataNom: data, dataReal, defl, ipca, geo, mun, munMonths, months, N, states, ufs, byUf, ratio, years, yearIdx, yearOf, monthOf, label, ym, evs, meta };
     S.idx = N - 1;
 
     readHash();
@@ -91,7 +97,8 @@
   }
 
   /* ---------- helpers de dados ---------- */
-  const ser = (fuel, uf = S.uf) => D.data[fuel][uf];
+  const DT = () => (S.real ? D.dataReal : D.dataNom);
+  const ser = (fuel, uf = S.uf) => DT()[fuel][uf];
   const rat = (uf = S.uf) => D.ratio[uf];
   const shown = () => (S.fuel === 'all' ? FUELS : [FUEL[S.fuel]]);
   const ufName = (u) => (u === 'BR' ? 'Brasil' : D.byUf[u].nome);
@@ -105,12 +112,16 @@
     if (uf && (uf === 'BR' || D.byUf[uf])) S.uf = uf;
     if (fuel && (fuel === 'all' || FUEL[fuel])) S.fuel = fuel;
     if (m && D.months.includes(m)) S.idx = D.months.indexOf(m);
+    S.real = p.get('real') === '1';
+    const mm = p.get('map'); if (['gasolina', 'etanol', 'diesel', 'ratio'].includes(mm)) S.mapMetric = mm;
   }
   function writeHash() {
     const p = new URLSearchParams();
     if (S.uf !== 'BR') p.set('uf', S.uf);
     if (S.fuel !== 'all') p.set('fuel', S.fuel);
     if (S.idx !== D.N - 1) p.set('m', D.months[S.idx]);
+    if (S.real) p.set('real', '1');
+    if (S.mapMetric) p.set('map', S.mapMetric);
     const h = p.toString();
     history.replaceState(null, '', h ? `#${h}` : location.pathname + location.search);
   }
@@ -134,6 +145,9 @@
     $('#btn-play').onclick = togglePlay;
     $('#btn-last').onclick = () => { stop(); setIdx(D.N - 1); };
     $('#chip-uf').onclick = () => setUf('BR');
+    $('#v-nom').onclick = () => { S.real = false; syncControls(); renderAll(true); };
+    $('#v-real').onclick = () => { S.real = true; syncControls(); renderAll(true); };
+    document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
     $('#src').textContent = `Fonte: ${D.meta.fonte || 'ANP'}`;
     $('#heat-range').textContent = `${D.years[0]} – ${D.years.at(-1)}`;
@@ -145,6 +159,8 @@
     $('#sel-uf').value = S.uf;
     $('#sel-fuel').value = S.fuel;
     $('#slider').value = S.idx;
+    $('#v-nom').classList.toggle('on', !S.real);
+    $('#v-real').classList.toggle('on', S.real);
     const chip = $('#chip-uf');
     chip.hidden = S.uf === 'BR';
     chip.textContent = `${S.uf} ✕`;
@@ -195,6 +211,8 @@
     drawLine();
     drawDumbbell();
     drawScatter();
+    drawMap();
+    drawMunicipios();
     if (full || !S._barsDrawn) { drawBars(); }
     else markBars();
     if (full || !S._heatDrawn) drawHeat(); else markHeat();
@@ -243,11 +261,11 @@
       cards.push(`<div class="kpi" style="--accent:#ccc"><div class="lab">Contra a média do Brasil</div>
         <div class="val">—</div><div class="hint">Média simples dos 27 estados.</div></div>`);
     } else {
-      const rank = D.ufs.map(u => ({ u, v: D.data.gasolina[u][i] })).sort((a, b) => b.v - a.v).findIndex(o => o.u === S.uf) + 1;
+      const rank = D.ufs.map(u => ({ u, v: DT().gasolina[u][i] })).sort((a, b) => b.v - a.v).findIndex(o => o.u === S.uf) + 1;
       cards.push(`<div class="kpi" style="--accent:#d49a1f"><div class="lab">Posição no ranking</div>
         <div class="val">${rank}º <span class="of">de ${D.ufs.length}</span></div>
         <div class="hint">${D.ufs.length - rank} estados mais baratos<br>↑ gasolina mais cara</div></div>`);
-      const br = D.data.gasolina.BR[i], v = D.data.gasolina[S.uf][i], diff = v - br, pc = (v / br - 1) * 100;
+      const br = DT().gasolina.BR[i], v = DT().gasolina[S.uf][i], diff = v - br, pc = (v / br - 1) * 100;
       cards.push(`<div class="kpi" style="--accent:${diff > 0 ? '#b5503a' : '#5b8c6a'}"><div class="lab">Contra a média do Brasil</div>
         <div class="val">${pctTxt(pc)}</div>
         <div class="hint"><span class="${diff > 0 ? 'bad' : 'good'}">${diff > 0 ? '+' : '−'}R$ ${f3.format(Math.abs(diff))}</span><br>média BR ${R$(br)} · gasolina</div></div>`);
@@ -300,7 +318,7 @@
   function drawLine() {
     const host = $('#chart-line'), fuels = shown(), i = S.idx;
     $('#t-line').textContent = S.uf === 'BR' ? 'Vinte e dois anos em uma linha' : `Para onde foi o preço · ${S.uf}`;
-    $('#s-line').textContent = `${ufName(S.uf)} · ${D.label(0)} – ${D.label(D.N - 1)} · clique para ir ao mês`;
+    $('#s-line').textContent = `${ufName(S.uf)} · ${D.label(0)} – ${D.label(D.N - 1)} · ${S.real ? `reais de ${D.label(D.N - 1)} (IPCA${D.ipca.aproximado ? ' aprox.' : ''})` : 'valores nominais'} · clique para ir ao mês`;
     $('#legend-line').innerHTML = legendItems(fuels, true, i);
 
     const W0 = host.clientWidth, H = Math.max(300, Math.min(400, W0 * 0.46));
@@ -381,7 +399,7 @@
     $('#s-dumb').textContent = `R$/litro · média por região · ${D.label(i)}`;
     const rows = REGIONS.map(r => {
       const us = D.states.filter(s => s.regiao === r).map(s => s.uf);
-      return { r, us, vals: fuels.map(f => ({ f, v: d3.mean(us, u => D.data[f.k][u][i]) })) };
+      return { r, us, vals: fuels.map(f => ({ f, v: d3.mean(us, u => DT()[f.k][u][i]) })) };
     });
     const selRegion = S.uf === 'BR' ? null : D.byUf[S.uf].regiao;
     const H = 40 + rows.length * 42;
@@ -406,7 +424,7 @@
         .on('mousemove', (e, o) => showTip(e, `<b>${row.r}</b><br>${o.f.n} <span class="mono">${R$(o.v)}</span>`)).on('mouseleave', hideTip);
       if (S.uf !== 'BR' && sel) {
         fuels.forEach(f => {
-          const v = D.data[f.k][S.uf][i];
+          const v = DT()[f.k][S.uf][i];
           svg.append('circle').attr('cx', x(v)).attr('cy', cy).attr('r', 7).attr('fill', 'none').attr('stroke', f.c).attr('stroke-width', 1.5)
             .on('mousemove', (e) => showTip(e, `<b>${S.uf}</b><br>${f.n} <span class="mono">${R$(v)}</span>`)).on('mouseleave', hideTip);
         });
@@ -471,7 +489,7 @@
   /* ---------- dispersão: regra dos 70% ---------- */
   function drawScatter() {
     const host = $('#chart-scatter'), i = S.idx;
-    const pts = D.ufs.map(u => ({ u, gas: D.data.gasolina[u][i], r: D.ratio[u][i] * 100 }));
+    const pts = D.ufs.map(u => ({ u, gas: DT().gasolina[u][i], r: D.ratio[u][i] * 100 }));
     const H = 250;
     const { svg, W } = mount(host, H);
     const m = { l: 36, r: 10, t: 14, b: 30 };
@@ -500,6 +518,62 @@
 
     const n = pts.filter(p => p.r < 70).length;
     $('#n-scatter').innerHTML = `O etanol compensou em <b>${n} dos ${pts.length} estados</b> em ${D.label(i)}.`;
+  }
+
+  /* ---------- mapa do Brasil ---------- */
+  function mapMetric() { return S.mapMetric || (S.fuel === 'all' ? 'gasolina' : S.fuel); }
+  function drawMap() {
+    const host = $('#chart-map'), i = S.idx, met = mapMetric();
+    document.querySelectorAll('#map-metric button').forEach(b => b.classList.toggle('on', b.dataset.m === met));
+    const isRatio = met === 'ratio';
+    const val = (u) => (isRatio ? D.ratio[u][i] * 100 : DT()[met][u][i]);
+    const vals = D.ufs.map(val), [lo, hi] = d3.extent(vals);
+    const color = isRatio
+      ? d3.scaleLinear().domain([Math.min(lo, 62), 70, 70.01, Math.max(hi, 80)]).range(['#4f8f5e', '#c4dcc8', '#e9bfb2', '#a8372b']).clamp(true)
+      : d3.scaleSequential(d3.interpolateRgb('#f6e7c1', FUEL[met].c === '#d49a1f' ? '#9a5f00' : FUEL[met].c === '#5b8c6a' ? '#2f5f40' : '#7a2b1c')).domain([lo, hi]);
+    const [, , vw, vh] = D.geo.viewBox.split(' ').map(Number);
+    const W = Math.min(host.clientWidth, 560), H = W * vh / vw;
+    host.innerHTML = '';
+    const svg = d3.select(host).append('svg').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${vw} ${vh}`).style('margin', '0 auto');
+    const unit = (v) => (isRatio ? `${f1.format(v)}%` : R$(v));
+    const g = svg.append('g');
+    g.selectAll('path').data(D.ufs).join('path').attr('d', u => D.geo.paths[u]).attr('fill', u => color(val(u)))
+      .style('stroke', u => (u === S.uf ? '#222' : null)).style('stroke-width', u => (u === S.uf ? 2.2 : null))
+      .on('mousemove', (e, u) => showTip(e, `<b>${u} — ${D.byUf[u].nome}</b><br>${isRatio ? 'etanol/gasolina' : FUEL[met].n} <span class="mono">${unit(val(u))}</span>${isRatio ? `<br>${val(u) < 70 ? '✓ compensa' : '✗ não compensa'}` : ''}`))
+      .on('mouseleave', hideTip).on('click', (_, u) => setUf(S.uf === u ? 'BR' : u));
+    // rótulos no centro de cada estado
+    g.selectAll('path').each(function (u) {
+      const b = this.getBBox();
+      g.append('text').attr('x', b.x + b.width / 2).attr('y', b.y + b.height / 2 + 3).attr('text-anchor', 'middle').text(u);
+    });
+    if (S.uf !== 'BR') g.selectAll('path').filter(u => u === S.uf).raise();
+    $('#s-map').textContent = `${isRatio ? 'Etanol ÷ gasolina' : FUEL[met].n + (S.real ? ' · R$ reais' : ' · R$/litro')} · ${D.label(i)} · clique num estado`;
+    const grad = isRatio ? 'linear-gradient(90deg,#4f8f5e,#c4dcc8 50%,#e9bfb2 50%,#a8372b)' : `linear-gradient(90deg,#f6e7c1,${FUEL[met].c})`;
+    $('#map-legend').innerHTML = `<span>${unit(lo)}</span><i style="background:${grad}"></i><span>${unit(hi)}</span>${isRatio ? '<span>· 70% = ponto de equilíbrio</span>' : ''}`;
+  }
+
+  /* ---------- ranking de municípios ---------- */
+  function drawMunicipios() {
+    const box = $('#mun-list'), fuelK = S.fuel === 'all' ? (mapMetric() === 'ratio' ? 'gasolina' : mapMetric()) : S.fuel;
+    const win = D.munMonths, first = win[0], last = win.at(-1);
+    const ci = Math.max(first, Math.min(last, S.idx)), k = win.indexOf(ci);
+    const inWin = S.idx >= first && S.idx <= last;
+    let scope = S.uf === 'BR' ? D.mun.items : D.mun.items.filter(m => m.uf === S.uf);
+    const fallback = S.uf !== 'BR' && scope.length < 6;   // poucos municípios no estado: mostra o Brasil e destaca o estado
+    if (fallback) scope = D.mun.items;
+    $('#t-mun').textContent = `Municípios mais caros e mais baratos${S.uf === 'BR' || fallback ? '' : ' · ' + S.uf}`;
+    $('#s-mun').textContent = `${FUEL[fuelK].n} · ${S.real ? 'R$ reais' : 'R$/litro'} · ${D.label(ci)} · ${scope.length} municípios`;
+    const v = (m) => m[fuelK][k] * (S.real ? D.defl[ci] : 1);
+    const sorted = [...scope].sort((a, b) => v(b) - v(a));
+    const n = Math.min(7, Math.floor(sorted.length / 2));
+    const top = sorted.slice(0, n), bot = sorted.slice(-n).reverse();
+    const [lo, hi] = d3.extent(sorted, v), w = d3.scaleLinear([lo * .9, hi], [8, 100]);
+    const row = (m, c) => `<div class="rw" data-uf="${m.uf}"${S.uf !== 'BR' && m.uf === S.uf ? ' style="background:#fdf3dc;border-radius:4px"' : ''}><span class="nm">${m.n}<small>${m.uf}</small></span><span><div class="bar" style="--c:${c};width:${w(v(m))}%"></div></span><span class="v">${R$(v(m))}</span></div>`;
+    const avg = d3.mean(sorted, v);
+    box.innerHTML = `<h4>Mais caros</h4>${top.map(m => row(m, '#b5503a')).join('')}<div class="gap"></div>
+      <h4>Mais baratos</h4>${bot.map(m => row(m, '#5b8c6a')).join('')}
+      <p class="note" style="margin-top:8px">Média do recorte: <b style="color:var(--ink)">${R$(avg)}</b> · diferença entre extremos: ${R$(v(top[0]) - v(bot[0]))}${fallback ? `<br>Poucos municípios de ${S.uf} nos dados: mostrando o Brasil, com ${S.uf} destacado.` : ''}${inWin ? '' : `<br>Ranking disponível só para ${D.label(first)} – ${D.label(last)}; mostrando ${D.label(ci)}.`}</p>`;
+    box.querySelectorAll('.rw').forEach(r => r.onclick = () => setUf(S.uf === r.dataset.uf ? 'BR' : r.dataset.uf));
   }
 
   /* ---------- mapa de calor ---------- */

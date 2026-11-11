@@ -23,6 +23,27 @@ select{background:#fff;border:1px solid var(--line);border-radius:6px;padding:5p
 .demo-flag{font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#8a5a00;background:#fbefd0;border:1px solid #efd596;border-radius:999px;padding:3px 10px}
 .chip{border:1px solid #efd596;background:#fbefd0;color:#8a5a00;font:500 11px var(--mono);border-radius:999px;padding:3px 10px;cursor:pointer}
 
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:#333;color:#fff}
+.seg.sm button{padding:3px 8px;font-size:11px}
+.map-legend{display:flex;align-items:center;gap:8px;font:400 10px var(--mono);color:var(--muted);margin-top:4px}
+.map-legend i{flex:0 0 160px;height:8px;border-radius:4px}
+.r3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+#chart-map path{stroke:#f8f8f8;stroke-width:.8;cursor:pointer;transition:opacity .15s}
+#chart-map path:hover{opacity:.8}
+#chart-map text{font:500 9px var(--mono);fill:#333;pointer-events:none;paint-order:stroke;stroke:rgba(255,255,255,.7);stroke-width:2px}
+.mun h4{margin:6px 0 6px;font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mun .rw{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 62px;align-items:center;gap:8px;font-size:12px;padding:2.5px 0}
+.mun .rw .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mun .rw .nm small{color:var(--muted);font:400 10px var(--mono);margin-left:4px}
+.mun .rw .bar{height:7px;border-radius:4px;background:var(--c)}
+.mun .rw .v{font:500 11.5px var(--mono);text-align:right}
+.mun .rw{cursor:pointer}.mun .rw:hover .nm{text-decoration:underline}
+.mun .gap{margin:8px 0;border-top:1px dashed var(--line)}
+.mun .note{font-size:11px;color:var(--muted)}
+
 /* hero */
 .hero{text-align:center;padding:44px 16px 26px}
 .eyebrow{font:400 12px var(--mono);letter-spacing:.32em;text-transform:uppercase;color:var(--ink2)}
@@ -119,7 +140,7 @@ h3.big b{font-weight:700}
 @media (max-width:980px){
   .layout{grid-template-columns:1fr}
   .feed{position:static;max-height:360px;order:2}
-  .r1,.r2{grid-template-columns:1fr}
+  .r1,.r2,.r3{grid-template-columns:1fr}
 }
 @media (max-width:560px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
