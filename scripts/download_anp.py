@@ -73,6 +73,47 @@ def diagnose():
             print(f"  {status(u):45s} {u}")
 
 
+def peek(url, n=3):
+    """Mostra as primeiras linhas de um CSV (ou do 1º CSV dentro de um ZIP) para conferir colunas e codificação."""
+    import io
+    import zipfile
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=300) as r:
+            if url.endswith(".zip"):
+                z = zipfile.ZipFile(io.BytesIO(r.read()))
+                print("  zip:", [(i.filename, i.file_size) for i in z.infolist()])
+                raw = z.open(z.infolist()[0]).read(4000)
+            else:
+                raw = r.read(4000)
+    except Exception as e:
+        print("  erro:", type(e).__name__, e)
+        return
+    for enc in ("utf-8", "latin-1"):
+        try:
+            txt = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    print(f"  codificação: {enc}")
+    for line in txt.splitlines()[:n]:
+        print("  |", line[:400])
+
+
+def diagnose2():
+    root = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc"
+    print("== links com 2022 ou zip ==")
+    html = urllib.request.urlopen(urllib.request.Request(PAGE, headers=HEADERS), timeout=60).read().decode("utf-8", "replace")
+    for l in sorted(set(re.findall(r'href="([^"]+)"', html))):
+        if re.search(r"2022|\.zip", l) and "/shpc/" in l:
+            print("  ", l)
+    for u in (f"{root}/dsas/ca/ca-2022-01.zip", f"{root}/dsas/ca/ca-2022-02.zip"):
+        print(status(u), u)
+    for u in (f"{root}/dsas/ca/ca-2022-02.zip", f"{root}/dsan/2024/precos-gasolina-etanol-01.csv", f"{root}/dsan/2024/precos-diesel-gnv-01.csv",
+              f"{root}/dsan/2026/10-gasolina-etanol.csv", f"{root}/dsan/2026/10-diesel-gnv.csv", f"{root}/dsan/2026/04-dados-abertos-precos-gasolina-etanol"):
+        print("==", u)
+        peek(u)
+
+
 def main(out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -95,5 +136,8 @@ def main(out):
 if __name__ == "__main__":
     if "--list" in sys.argv:
         diagnose()
+        sys.exit(0)
+    if "--peek" in sys.argv:
+        diagnose2()
         sys.exit(0)
     main(sys.argv[1] if len(sys.argv) > 1 else "raw")
