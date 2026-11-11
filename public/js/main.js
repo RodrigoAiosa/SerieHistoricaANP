@@ -94,7 +94,6 @@
 
     readHash();
     buildControls();
-    hero();
     renderAll(true);
     window.addEventListener('hashchange', () => { readHash(); syncControls(); renderAll(true); });
     let raf = 0;
@@ -159,7 +158,6 @@
     $('#src').textContent = `Fonte: ${D.meta.fonte || 'ANP'}`;
     $('#heat-range').textContent = `${D.years[0]} – ${D.years.at(-1)}`;
     $('#hero-range').textContent = `${D.years[0]} – ${D.years.at(-1)}`;
-    $('#hero-caption').textContent = `coletas de preço na bomba, de ${D.years[0]} a ${D.years.at(-1)}.`;
     syncControls();
   }
   function syncControls() {
@@ -188,23 +186,6 @@
     }, 110);
   }
   function stop() { S.playing = false; clearInterval(timer); $('#btn-play').textContent = '▶'; }
-
-  /* ---------- hero ---------- */
-  function hero() {
-    const target = D.meta.coletas || 0, node = $('#counter'), fill = $('#rule-fill');
-    const fmt = (v) => f0.format(Math.round(v));
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !target) {
-      node.textContent = fmt(target); fill.style.width = '100%'; return;
-    }
-    const t0 = performance.now(), dur = 1800;
-    const tick = (t) => {
-      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      node.textContent = fmt(target * e);
-      fill.style.width = `${e * 100}%`;
-      if (k < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }
 
   /* ---------- render ---------- */
   function renderAll(full) {
