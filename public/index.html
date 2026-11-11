@@ -73,53 +73,42 @@
     <div class="kpis" id="kpis"></div>
 
     <div class="row r1">
-      <article class="card" data-tabs="evo" aria-label="Evolução dos preços">
-        <div class="tabs" role="tablist" aria-label="Evolução dos preços"><button type="button" role="tab" id="tab-line" data-pane="line" aria-selected="true">Preço</button><button type="button" role="tab" id="tab-infl" data-pane="infl" aria-selected="false" tabindex="-1">Contra a inflação</button><button type="button" role="tab" id="tab-cmp" data-pane="cmp" aria-selected="false" tabindex="-1">Comparar estados</button><button type="button" role="tab" id="tab-band" data-pane="band" aria-selected="false" tabindex="-1">Bandeira branca</button><button type="button" role="tab" id="tab-croll" data-pane="croll" aria-selected="false" tabindex="-1">Correlação móvel</button></div>
-      <div class="pane" role="tabpanel" data-pane="line" aria-labelledby="tab-line">
+      <article class="card">
         <div class="chead">
-          <div><h3 id="t-line" class="sr-only">Para onde foi o preço</h3><p class="sub" id="s-line"></p></div>
+          <div><h3 id="t-line">Para onde foi o preço</h3><p class="sub" id="s-line"></p></div>
           <div class="legend" id="legend-line"></div>
         </div>
         <div id="chart-line" class="chart" role="img" aria-label="Preço médio mensal de gasolina, etanol e diesel"></div>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="infl" aria-labelledby="tab-infl" hidden>
-        <div class="chead">
-          <div><h3 class="sr-only">Combustível contra a inflação</h3><p class="sub" id="s-infl"></p></div>
-          <div class="legend" id="legend-infl"></div>
-        </div>
-        <div id="chart-infl" class="chart" role="img" aria-label="Preço dos combustíveis e IPCA, base 100 no início da série"></div>
-        <p class="note" id="n-infl"></p>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="cmp" aria-labelledby="tab-cmp" hidden>
-        <div class="chead">
-          <div><h3 class="sr-only">Comparar estados</h3><p class="sub" id="s-cmp"></p></div>
-          <div class="cmp-ctl"><div class="seg sm" id="cmp-mode" role="group" aria-label="Modo"><button data-cd="0">R$/litro</button><button data-cd="1">vs. Brasil</button></div><div id="cmp-chips" class="cchips"></div><select id="cmp-add" aria-label="Adicionar estado à comparação"></select></div>
-        </div>
-        <div class="legend" id="legend-cmp"></div>
-        <div id="chart-cmp" class="chart" role="img" aria-label="Preço por estado escolhido, comparado à média do Brasil"></div>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="band" aria-labelledby="tab-band" hidden>
-        <div class="chead">
-          <div><h3 class="sr-only">Bandeira branca vs. bandeiradas</h3><p class="sub" id="s-band"></p></div>
-          <div class="legend" id="legend-band"></div>
-        </div>
-        <div id="chart-band" class="chart" role="img" aria-label="Preço em postos de bandeira branca e de bandeiradas"></div>
-        <p class="note" id="n-band"></p>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="croll" aria-labelledby="tab-croll" hidden>
-        <div class="chead">
-          <div><h3 class="sr-only">A relação mudou ao longo do tempo?</h3><p class="sub" id="s-croll"></p></div>
-          <div class="legend" id="legend-croll"></div>
-        </div>
-        <div id="chart-croll" class="chart" role="img" aria-label="Correlação móvel de 36 meses entre pares de combustíveis"></div>
-        <p class="note" id="n-croll"></p>
-            </div>
       </article>
-      <article class="card" data-tabs="geo" aria-label="Onde">
-        <div class="tabs" role="tablist" aria-label="Onde"><button type="button" role="tab" id="tab-map" data-pane="map" aria-selected="true">Mapa</button><button type="button" role="tab" id="tab-dumb" data-pane="dumb" aria-selected="false" tabindex="-1">Regiões</button><button type="button" role="tab" id="tab-mun" data-pane="mun" aria-selected="false" tabindex="-1">Municípios</button></div>
-      <div class="pane" role="tabpanel" data-pane="map" aria-labelledby="tab-map">
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Mapa do Brasil</h3><p class="sub" id="s-map"></p></div>
+          <div><h3>Onde é mais caro abastecer</h3><p class="sub" id="s-dumb">R$/litro · média por região</p></div>
+        </div>
+        <div id="chart-dumb" class="chart" role="img" aria-label="Preço médio por região"></div>
+      </article>
+    </div>
+
+    <div class="row r2">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Quanto subiu em cada ano</h3><p class="sub" id="s-bars"></p></div>
+          <div class="legend" id="legend-bars"></div>
+        </div>
+        <div id="chart-bars" class="chart" role="img" aria-label="Variação anual do preço médio"></div>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Vale a pena abastecer com etanol?</h3><p class="sub">abaixo dos 70% compensa · clique num estado</p></div>
+        </div>
+        <div id="chart-scatter" class="chart" role="img" aria-label="Razão etanol/gasolina por estado"></div>
+        <p class="note" id="n-scatter"></p>
+      </article>
+    </div>
+
+    <div class="row r3">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Mapa do Brasil</h3><p class="sub" id="s-map"></p></div>
           <div class="seg sm" id="map-metric" role="group" aria-label="Métrica do mapa">
             <button data-m="gasolina">Gasolina</button><button data-m="etanol">Etanol</button>
             <button data-m="diesel">Diesel</button><button data-m="ratio">Etanol ÷ Gas.</button>
@@ -127,79 +116,66 @@
         </div>
         <div id="chart-map" class="chart" role="img" aria-label="Mapa do Brasil colorido por estado"></div>
         <div id="map-legend" class="map-legend"></div>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="dumb" aria-labelledby="tab-dumb" hidden>
+      </article>
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Onde é mais caro abastecer</h3><p class="sub" id="s-dumb">R$/litro · média por região</p></div>
-        </div>
-        <div id="chart-dumb" class="chart" role="img" aria-label="Preço médio por região"></div>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="mun" aria-labelledby="tab-mun" hidden>
-        <div class="chead">
-          <div><h3 id="t-mun" class="sr-only">Municípios mais caros e mais baratos</h3><p class="sub" id="s-mun"></p></div>
+          <div><h3 id="t-mun">Municípios mais caros e mais baratos</h3><p class="sub" id="s-mun"></p></div>
         </div>
         <div id="mun-list" class="mun"></div>
-            </div>
       </article>
     </div>
 
-    <div class="row r2">
-      <article class="card" data-tabs="chg" aria-label="Variação">
-        <div class="tabs" role="tablist" aria-label="Variação"><button type="button" role="tab" id="tab-bars" data-pane="bars" aria-selected="true">Ano a ano</button><button type="button" role="tab" id="tab-mov" data-pane="mov" aria-selected="false" tabindex="-1">Altas e quedas</button></div>
-      <div class="pane" role="tabpanel" data-pane="bars" aria-labelledby="tab-bars">
+    <div class="row r4">
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Quanto subiu em cada ano</h3><p class="sub" id="s-bars"></p></div>
-          <div class="legend" id="legend-bars"></div>
+          <div><h3>Combustível contra a inflação</h3><p class="sub" id="s-infl"></p></div>
+          <div class="legend" id="legend-infl"></div>
         </div>
-        <div id="chart-bars" class="chart" role="img" aria-label="Variação anual do preço médio"></div>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="mov" aria-labelledby="tab-mov" hidden>
+        <div id="chart-infl" class="chart" role="img" aria-label="Preço dos combustíveis e IPCA, base 100 no início da série"></div>
+        <p class="note" id="n-infl"></p>
+      </article>
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Maiores altas e quedas</h3><p class="sub" id="s-mov"></p></div>
+          <div><h3>Maiores altas e quedas</h3><p class="sub" id="s-mov"></p></div>
           <div class="seg sm" id="mv-win" role="group" aria-label="Período">
             <button data-w="1">1 mês</button><button data-w="12">12 meses</button><button data-w="60">5 anos</button>
           </div>
         </div>
         <div id="chart-mov" class="chart" role="img" aria-label="Estados com maiores altas e quedas de preço no período"></div>
-            </div>
-      </article>
-      <article class="card" data-tabs="eth" aria-label="Etanol ou gasolina">
-        <div class="tabs" role="tablist" aria-label="Etanol ou gasolina"><button type="button" role="tab" id="tab-scatter" data-pane="scatter" aria-selected="true">Regra dos 70%</button><button type="button" role="tab" id="tab-heat" data-pane="heat" aria-selected="false" tabindex="-1">Estado × ano</button></div>
-      <div class="pane" role="tabpanel" data-pane="scatter" aria-labelledby="tab-scatter">
-        <div class="chead">
-          <div><h3 class="sr-only">Vale a pena abastecer com etanol?</h3><p class="sub">abaixo dos 70% compensa · clique num estado</p></div>
-        </div>
-        <div id="chart-scatter" class="chart" role="img" aria-label="Razão etanol/gasolina por estado"></div>
-        <p class="note" id="n-scatter"></p>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="heat" aria-labelledby="tab-heat" hidden>
-      <div class="chead">
-        <div>
-          <p class="eyebrow sm">Etanol ÷ gasolina · 27 estados · <span id="heat-range"></span></p>
-          <h3 class="sr-only">Onde e quando o etanol <b>compensou</b></h3>
-        </div>
-        <div class="legend" id="legend-heat"></div>
-      </div>
-      <div id="chart-heat" class="chart" role="img" aria-label="Mapa de calor da razão etanol/gasolina por estado e ano"></div>
-      <p class="note" id="n-heat"></p>
-          </div>
       </article>
     </div>
 
-    <div class="row r3">
-      <article class="card" data-tabs="cor" aria-label="Correlações">
-        <div class="tabs" role="tablist" aria-label="Correlações"><button type="button" role="tab" id="tab-cmat" data-pane="cmat" aria-selected="true">Matriz</button><button type="button" role="tab" id="tab-cscat" data-pane="cscat" aria-selected="false" tabindex="-1">Dispersão</button><button type="button" role="tab" id="tab-crank" data-pane="crank" aria-selected="false" tabindex="-1">Estados vs. Brasil</button></div>
-      <div class="pane" role="tabpanel" data-pane="cmat" aria-labelledby="tab-cmat">
+    <div class="row r5">
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Matriz de correlação</h3><p class="sub" id="s-cmat"></p></div>
+          <div><h3>Comparar estados</h3><p class="sub" id="s-cmp"></p></div>
+          <div class="cmp-ctl"><div class="seg sm" id="cmp-mode" role="group" aria-label="Modo"><button data-cd="0">R$/litro</button><button data-cd="1">vs. Brasil</button></div><div id="cmp-chips" class="cchips"></div><select id="cmp-add" aria-label="Adicionar estado à comparação"></select></div>
+        </div>
+        <div class="legend" id="legend-cmp"></div>
+        <div id="chart-cmp" class="chart" role="img" aria-label="Preço por estado escolhido, comparado à média do Brasil"></div>
+      </article>
+      <article class="card" id="card-band">
+        <div class="chead">
+          <div><h3>Bandeira branca vs. bandeiradas</h3><p class="sub" id="s-band"></p></div>
+          <div class="legend" id="legend-band"></div>
+        </div>
+        <div id="chart-band" class="chart" role="img" aria-label="Preço em postos de bandeira branca e de bandeiradas"></div>
+        <p class="note" id="n-band"></p>
+      </article>
+    </div>
+
+    <div class="row r6">
+      <article class="card">
+        <div class="chead">
+          <div><h3>Matriz de correlação</h3><p class="sub" id="s-cmat"></p></div>
           <div class="seg sm cm-mode" role="group" aria-label="Base da correlação"><button data-cm="var">Variações</button><button data-cm="lvl">Níveis</button></div>
         </div>
         <div id="chart-cmat" class="chart" role="img" aria-label="Matriz de correlação entre gasolina, etanol, diesel e IPCA"></div>
         <p class="note" id="n-cmat"></p>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="cscat" aria-labelledby="tab-cscat" hidden>
+      </article>
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Um combustível explica o outro?</h3><p class="sub" id="s-cscat"></p></div>
+          <div><h3>Um combustível explica o outro?</h3><p class="sub" id="s-cscat"></p></div>
           <div class="cmp-ctl">
             <div class="seg sm cm-mode" role="group" aria-label="Base da correlação"><button data-cm="var">Variações</button><button data-cm="lvl">Níveis</button></div>
             <div class="seg sm" id="cp-pair" role="group" aria-label="Par de combustíveis"><button data-p="0">Gas × Eta</button><button data-p="1">Gas × Die</button><button data-p="2">Eta × Die</button></div>
@@ -207,32 +183,54 @@
         </div>
         <div id="chart-cscat" class="chart" role="img" aria-label="Dispersão entre dois combustíveis com reta de regressão"></div>
         <p class="note" id="n-cscat"></p>
-            </div>
-      <div class="pane" role="tabpanel" data-pane="crank" aria-labelledby="tab-crank" hidden>
+      </article>
+    </div>
+
+    <div class="row r7">
+      <article class="card">
         <div class="chead">
-          <div><h3 class="sr-only">Quem acompanha o Brasil</h3><p class="sub" id="s-crank"></p></div>
+          <div><h3>A relação mudou ao longo do tempo?</h3><p class="sub" id="s-croll"></p></div>
+          <div class="legend" id="legend-croll"></div>
+        </div>
+        <div id="chart-croll" class="chart" role="img" aria-label="Correlação móvel de 36 meses entre pares de combustíveis"></div>
+        <p class="note" id="n-croll"></p>
+      </article>
+      <article class="card">
+        <div class="chead">
+          <div><h3>Quem acompanha o Brasil</h3><p class="sub" id="s-crank"></p></div>
         </div>
         <div id="chart-crank" class="chart" role="img" aria-label="Correlação de cada estado com a média do Brasil"></div>
         <p class="note" id="n-crank"></p>
-            </div>
       </article>
-      <article class="card wide" id="resumo">
+    </div>
+
+    <article class="card wide" id="resumo">
       <div class="chead">
         <div>
           <p class="eyebrow sm">Texto pronto para apresentar · segue os filtros acima</p>
           <h3 class="big">Resumo <b>da seleção</b></h3>
         </div>
         <div class="actions">
-          <button class="btn" id="btn-resumo" type="button" aria-expanded="false" aria-controls="resumo-txt">Mostrar resumo ▾</button>
           <button class="btn" id="btn-copy" type="button">Copiar texto</button>
           <button class="btn" id="btn-csv-sel" type="button" title="Estado, combustíveis e tipo de valor (nominal/real) selecionados">Baixar CSV · seleção</button>
           <button class="btn primary" id="btn-csv-all" type="button" title="27 estados + média Brasil, 3 combustíveis, todos os meses">Baixar CSV · série completa</button>
         </div>
       </div>
-      <div id="resumo-txt" class="resumo" aria-live="polite" hidden></div>
+      <div id="resumo-txt" class="resumo" aria-live="polite"></div>
       <p class="note sm" id="csv-note">CSV em UTF-8, separador “;” e decimal com vírgula (abre direto no Excel em português). Colunas: mes; uf; estado; combustivel; preco_nominal_rs_l; preco_real_ipca_rs_l.</p>
     </article>
-    </div>
+
+    <article class="card wide">
+      <div class="chead">
+        <div>
+          <p class="eyebrow sm">Etanol ÷ gasolina · 27 estados · <span id="heat-range"></span></p>
+          <h3 class="big">Onde e quando o etanol <b>compensou</b></h3>
+        </div>
+        <div class="legend" id="legend-heat"></div>
+      </div>
+      <div id="chart-heat" class="chart" role="img" aria-label="Mapa de calor da razão etanol/gasolina por estado e ano"></div>
+      <p class="note" id="n-heat"></p>
+    </article>
   </section>
 </main>
 

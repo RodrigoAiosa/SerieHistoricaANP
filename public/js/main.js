@@ -40,12 +40,11 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
   /* ---------- estado ---------- */
-  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false, cm: 'var', cp: 0, tabs: { evo: 'line', geo: 'map', chg: 'bars', eth: 'scatter', cor: 'cmat' } };
+  const S = { uf: 'BR', fuel: 'all', idx: 0, playing: false, type: 'all', q: '', real: false, mapMetric: null, cmp: ['SP', 'RJ', 'AM'], mv: 12, cd: false, cm: 'var', cp: 0 };
   let D = null;           // dados processados
   let timer = null;
 
   /* ---------- carga ---------- */
-  const TAB_DEFAULT = { evo: 'line', geo: 'map', chg: 'bars', eth: 'scatter', cor: 'cmat' };
   const optional = fetch('data/bandeira.json').then(r => (r.ok ? r.json() : null)).catch(() => null);   // opcional: sem ele o card some
   Promise.all(['series', 'events', 'meta', 'brasil-uf', 'ipca', 'municipios'].map(n => fetch(`data/${n}.json`).then(r => {
     if (!r.ok) throw new Error(`${n}.json: ${r.status}`);
@@ -97,7 +96,7 @@
     readHash();
     buildControls();
     renderAll(true);
-    window.addEventListener('hashchange', () => { readHash(); applyTabs(); syncControls(); renderAll(true); });
+    window.addEventListener('hashchange', () => { readHash(); syncControls(); renderAll(true); });
     let raf = 0;
     new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => renderCharts(true)); })
       .observe($('.content'));
@@ -122,8 +121,6 @@
     S.real = p.get('real') === '1';
     const cmp = p.get('cmp'); if (cmp != null) S.cmp = cmp.split(',').filter(u => D.byUf[u]).slice(0, 4);
     S.cd = p.get('cd') === '1';
-    S.tabs = { ...TAB_DEFAULT };
-    for (const kv of (p.get('tab') || '').split(',')) { const [g, n] = kv.split(':'); if (TAB_DEFAULT[g] && document.querySelector(`[data-tabs="${g}"] .tabs button[data-pane="${n}"]`)) S.tabs[g] = n; }
     S.cm = p.get('cm') === 'lvl' ? 'lvl' : 'var';
     const cp = +p.get('cp'); S.cp = [1, 2].includes(cp) ? cp : 0;
     const mv = +p.get('mv'); if ([1, 12, 60].includes(mv)) S.mv = mv;
@@ -139,8 +136,6 @@
     if (S.cmp.join() !== 'SP,RJ,AM') p.set('cmp', S.cmp.join(','));
     if (S.mv !== 12) p.set('mv', S.mv);
     if (S.cd) p.set('cd', '1');
-    const tb = Object.keys(TAB_DEFAULT).filter(g => S.tabs[g] !== TAB_DEFAULT[g]).map(g => `${g}:${S.tabs[g]}`).join(',');
-    if (tb) p.set('tab', tb);
     if (S.cm !== 'var') p.set('cm', S.cm);
     if (S.cp) p.set('cp', S.cp);
     const h = p.toString();
@@ -169,7 +164,6 @@
     $('#chip-uf').onclick = () => setUf('BR');
     $('#v-nom').onclick = () => { S.real = false; syncControls(); renderAll(true); };
     $('#v-real').onclick = () => { S.real = true; syncControls(); renderAll(true); };
-    $('#btn-resumo').onclick = () => { const h = $('#resumo-txt'), on = h.hidden; h.hidden = !on; $('#btn-resumo').textContent = on ? 'Ocultar resumo ▴' : 'Mostrar resumo ▾'; $('#btn-resumo').setAttribute('aria-expanded', on); };
     $('#btn-copy').onclick = copyResumo;
     $('#btn-csv-sel').onclick = () => downloadCsv(false);
     $('#btn-csv-all').onclick = () => downloadCsv(true);
@@ -179,8 +173,7 @@
     document.querySelectorAll('.cm-mode button').forEach(b => b.onclick = () => { S.cm = b.dataset.cm; syncControls(); writeHash(); drawCorr(); });
     document.querySelectorAll('#cp-pair button').forEach(b => b.onclick = () => { S.cp = +b.dataset.p; syncControls(); writeHash(); drawCorr(); });
     buildGuide();
-    if (!D.band) { $('#tab-band').hidden = true; if (S.tabs.evo === 'band') S.tabs.evo = 'line'; }
-    buildTabs();
+    if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
     $('#src').textContent = `Fonte: ${D.meta.fonte || 'ANP'}`;
@@ -229,45 +222,21 @@
     renderCharts(full);
     renderResumo();
   }
-  // cada visão fica numa aba; só as abas visíveis são desenhadas (as outras são desenhadas ao abrir)
-  const PANE_DRAW = {
-    line: () => drawLine(), dumb: () => drawDumbbell(), scatter: () => drawScatter(), map: () => drawMap(), mun: () => drawMunicipios(),
-    infl: () => drawInflation(), mov: () => drawMovers(), cmp: () => drawCompare(), band: () => drawBandeira(),
-    cmat: () => drawCorrMatrix(), cscat: () => drawCorrScatter(), croll: () => drawCorrRolling(), crank: () => drawCorrRank(),
-    bars: () => drawBars(), heat: () => drawHeat(),
-  };
-  const paneVisible = (n) => { const p = document.querySelector(`.pane[data-pane="${n}"]`); return !!p && !p.hidden; };
   function renderCharts(full) {
-    for (const n of Object.keys(PANE_DRAW)) {
-      if (!paneVisible(n)) continue;
-      if (n === 'bars' && !full && S._barsDrawn) markBars();
-      else if (n === 'heat' && !full && S._heatDrawn) markHeat();
-      else PANE_DRAW[n]();
-    }
+    drawLine();
+    drawDumbbell();
+    drawScatter();
+    drawMap();
+    drawMunicipios();
+    drawInflation();
+    drawMovers();
+    drawCompare();
+    drawBandeira();
+    drawCorr();
+    if (full || !S._barsDrawn) { drawBars(); }
+    else markBars();
+    if (full || !S._heatDrawn) drawHeat(); else markHeat();
   }
-  function setTab(group, pane, silent) {
-    const card = document.querySelector(`[data-tabs="${group}"]`), btn = card && card.querySelector(`.tabs button[data-pane="${pane}"]`);
-    if (!btn || btn.hidden) return;
-    S.tabs[group] = pane;
-    card.querySelectorAll('.tabs button').forEach(b => { const on = b === btn; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
-    card.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.pane !== pane; });
-    if (!silent) { writeHash(); PANE_DRAW[pane](); }
-  }
-  function buildTabs() {
-    document.querySelectorAll('[data-tabs]').forEach(card => {
-      const g = card.dataset.tabs, btns = [...card.querySelectorAll('.tabs button')];
-      btns.forEach(b => {
-        b.onclick = () => setTab(g, b.dataset.pane);
-        b.onkeydown = (e) => {
-          const vis = btns.filter(x => !x.hidden), k = vis.indexOf(b);
-          const n = e.key === 'ArrowRight' ? vis[(k + 1) % vis.length] : e.key === 'ArrowLeft' ? vis[(k - 1 + vis.length) % vis.length] : null;
-          if (n) { e.preventDefault(); n.focus(); setTab(g, n.dataset.pane); }
-        };
-      });
-    });
-    applyTabs();
-  }
-  function applyTabs() { for (const g of Object.keys(TAB_DEFAULT)) setTab(g, S.tabs[g], true); }
 
 
 
@@ -427,7 +396,6 @@
       ['Estado', '.topbar', 'Filtra o painel para um estado. “Brasil (média)” é a média simples dos 27 estados. Também dá para escolher clicando no mapa, nas barras, na dispersão ou no ranking de municípios.'],
       ['Combustível', '.topbar', 'Gasolina, etanol, diesel ou “Os três”. Os gráficos que mostram um combustível só (altas e quedas, comparar estados, bandeira) usam a gasolina quando está em “Os três”.'],
       ['Nominal / Real (IPCA)', '.topbar', '<em>Nominal</em> é o preço como foi coletado. <em>Real</em> corrige pelo IPCA e mostra tudo em reais de hoje, para comparar épocas diferentes sem o efeito da inflação.'],
-      ['Abas dos gráficos', '.tabs', 'Os gráficos relacionados ficam juntos num mesmo quadro, com abas para trocar a visão (por exemplo: Preço, Contra a inflação, Comparar estados, Bandeira branca e Correlação móvel). A aba escolhida fica salva no endereço da página.'],
       ['Linha do tempo', '.timebar', 'Escolhe o mês analisado; todo o painel acompanha. O botão ▶ anima mês a mês e “Mais recente” volta ao último mês. A seleção fica no endereço da página, então o link já compartilha a visão atual.'],
     ]],
     ['Notícias', [
@@ -459,7 +427,7 @@
       ['Quem acompanha o Brasil', '#chart-crank', 'Correlação de cada estado com a média nacional. Valores baixos indicam estados cujo preço se move mais por conta própria.'],
     ]],
     ['Resumo e dados', [
-      ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Fica recolhido: use “Mostrar resumo”. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
+      ['Resumo da seleção', '#resumo', 'Texto pronto para apresentar, gerado conforme os filtros: preços, variações, inflação, regra dos 70%, ranking e fatos recentes. Tem botão para copiar e para baixar CSV (da seleção ou da série completa).'],
       ['Fonte e avisos', '.foot', 'Dados da ANP (levantamento de preços de revenda). “Dados de demonstração” indica números sintéticos; “IPCA aproximado” indica que o índice oficial ainda não foi carregado.'],
     ]],
   ];
@@ -472,8 +440,6 @@
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // clique fora (no fundo)
     body.querySelectorAll('.g-item').forEach(b => b.onclick = () => {
       const node = document.querySelector(b.dataset.sel); if (!node) return;
-      const pane = node.closest('.pane'), tabCard = node.closest('[data-tabs]');
-      if (pane && tabCard && pane.hidden) setTab(tabCard.dataset.tabs, pane.dataset.pane);
       const target = node.closest('.card, .feed, .timebar, .topbar, .foot, .kpis') || node;
       dlg.close();
       target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
@@ -506,7 +472,7 @@
   const cMinMsg = (host) => { host.innerHTML = '<div class="empty">Mova a linha do tempo para depois de ' + D.label(Math.min(D.N - 1, 12)) + ' — são necessários ao menos 12 meses.</div>'; };
   const cCorr = (k1, k2, uf, i) => { const a = cBase(k1, uf), b = cBase(k2, uf), f = cFrom(); return pearson(a.slice(f, i + 1), b.slice(f, i + 1)); };
 
-  function drawCorr() { for (const n of ['cmat', 'cscat', 'croll', 'crank']) if (paneVisible(n)) PANE_DRAW[n](); }
+  function drawCorr() { drawCorrMatrix(); drawCorrScatter(); drawCorrRolling(); drawCorrRank(); }
 
   /* matriz 4×4 (gasolina, etanol, diesel, IPCA) */
   function drawCorrMatrix() {

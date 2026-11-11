@@ -204,15 +204,3 @@ dialog.guide::backdrop{background:rgba(31,42,51,.35)}
 .g-item b span{font:400 11px var(--mono);color:var(--muted);white-space:nowrap}
 .g-item p{font-size:13px;line-height:1.5;color:var(--ink2);margin-top:4px}
 .g-item p em{font-style:normal;font-weight:600;color:var(--ink)}
-
-/* abas: cada card agrupa visões relacionadas */
-.row{align-items:start}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin:-4px 0 12px;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tabs button{border:0;background:transparent;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;border-radius:6px 6px 0 0}
-.tabs button:hover{color:var(--ink);background:rgba(0,0,0,.03)}
-.tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--gold)}
-.tabs button:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
-.pane[hidden]{display:none}
-.resumo[hidden]{display:none}
