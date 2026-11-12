@@ -1202,6 +1202,23 @@
 
   /* ---------- mapa do Brasil ---------- */
   function mapMetric() { return S.mapMetric || (S.fuel === 'all' ? 'gasolina' : S.fuel); }
+  /* municípios mais caros/baratos de um estado (top 3), para o tooltip do mapa */
+  function munExtremes(u, met) {
+    const win = D.munMonths, first = win[0], last = win.at(-1);
+    const ci = Math.max(first, Math.min(last, S.idx)), k = win.indexOf(ci);
+    const list = D.mun.items.filter(m => m.uf === u);
+    if (!list.length) return '<br><span class="mono" style="opacity:.7">sem municípios pesquisados</span>';
+    const ratio = met === 'ratio', fz = S.real ? D.defl[ci] : 1;
+    const v = (m) => (ratio ? m.etanol[k] / m.gasolina[k] * 100 : m[met][k] * fz);
+    const fmt = (x) => (ratio ? `${f1.format(x)}%` : R$(x));
+    const sorted = list.filter(m => isFinite(v(m))).sort((a, b) => v(b) - v(a));
+    const n = Math.min(3, Math.floor(sorted.length / 2)) || (sorted.length ? 1 : 0);
+    if (!n) return '';
+    const hi = sorted.slice(0, n), lo = sorted.length > 1 ? sorted.slice(-n).reverse() : [];
+    const line = (m, c) => `<span style="color:${c}">●</span> ${escH(m.n)} <span class="mono">${fmt(v(m))}</span>`;
+    return `<br><span class="mono" style="opacity:.7">MUNICÍPIOS · ${D.label(ci)}</span><br><b>${sorted.length === 1 ? 'Único pesquisado' : ratio ? 'Etanol menos vantajoso' : 'Mais caros'}</b><br>${hi.map(m => line(m, '#e57368')).join('<br>')}`
+      + (lo.length ? `<br><b>${ratio ? 'Etanol mais vantajoso' : 'Mais baratos'}</b><br>${lo.map(m => line(m, '#6fcf97')).join('<br>')}` : '');
+  }
   function drawMap() {
     const host = $('#chart-map'), i = S.idx, met = mapMetric();
     document.querySelectorAll('#map-metric button').forEach(b => b.classList.toggle('on', b.dataset.m === met));
@@ -1219,7 +1236,7 @@
     const g = svg.append('g');
     g.selectAll('path').data(D.ufs).join('path').attr('d', u => D.geo.paths[u]).attr('fill', u => color(val(u)))
       .style('stroke', u => (u === S.uf ? '#222' : null)).style('stroke-width', u => (u === S.uf ? 2.2 : null))
-      .on('mousemove', (e, u) => showTip(e, `<b>${u} — ${D.byUf[u].nome}</b><br>${isRatio ? 'etanol/gasolina' : FUEL[met].n} <span class="mono">${unit(val(u))}</span>${isRatio ? `<br>${val(u) < 70 ? '✓ compensa' : '✗ não compensa'}` : ''}`))
+      .on('mousemove', (e, u) => showTip(e, `<b>${u} — ${D.byUf[u].nome}</b><br>${isRatio ? 'etanol/gasolina' : FUEL[met].n} <span class="mono">${unit(val(u))}</span>${isRatio ? `<br>${val(u) < 70 ? '✓ compensa' : '✗ não compensa'}` : ''}${munExtremes(u, met)}`))
       .on('mouseleave', hideTip).on('click', (_, u) => setUf(S.uf === u ? 'BR' : u));
     // rótulos no centro de cada estado
     g.selectAll('path').each(function (u) {
