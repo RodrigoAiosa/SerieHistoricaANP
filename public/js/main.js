@@ -183,6 +183,7 @@
     $('#tb-csv').onclick = downloadTableCsv;
     buildGuide();
     buildTour();
+    initChrome();
     if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
@@ -460,6 +461,25 @@
       target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
     });
+  }
+
+  /* ---------- topo fixo: mede o cabeçalho e compacta os indicadores ao rolar ---------- */
+  function initChrome() {
+    const bar = document.querySelector('.topbar'), kp = $('#kpis'); if (!bar || !kp) return;
+    const setTb = () => document.documentElement.style.setProperty('--tb', bar.offsetHeight + 'px');
+    setTb(); addEventListener('resize', setTb);
+    if (window.ResizeObserver) new ResizeObserver(setTb).observe(bar);
+    let origin = null;
+    const measure = () => { if (!kp.classList.contains('compact')) origin = kp.getBoundingClientRect().top + scrollY; };
+    const onScroll = () => {
+      if (origin == null) measure();
+      const stuckAt = origin - bar.offsetHeight - 8, y = scrollY, on = kp.classList.contains('compact');
+      if (!on && y > stuckAt + 40) kp.classList.add('compact');
+      else if (on && y < stuckAt + 4) kp.classList.remove('compact');
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', () => { origin = null; });
+    measure(); onScroll();
   }
 
   /* ---------- tour guiado (1º acesso): destaca um item e desfoca o resto ---------- */

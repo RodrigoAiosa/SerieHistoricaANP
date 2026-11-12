@@ -242,3 +242,41 @@ dialog.guide::backdrop{background:rgba(31,42,51,.35)}
 .tour-nav .spacer{flex:1}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.tour-ring{transition:all .25s ease}.tour-pop{transition:left .25s ease,top .25s ease}}
+
+/* ===== efeito glass + indicadores fixos no topo ===== */
+:root{--tb:54px;--glass:rgba(255,255,255,.58);--glass-line:rgba(255,255,255,.75);--glass-shadow:0 8px 30px rgba(31,42,51,.10),inset 0 1px 0 rgba(255,255,255,.7)}
+body{background:
+  radial-gradient(900px 600px at 8% 4%,rgba(184,125,0,.20),transparent 60%),
+  radial-gradient(800px 650px at 95% 12%,rgba(31,78,121,.18),transparent 60%),
+  radial-gradient(900px 700px at 55% 100%,rgba(46,125,79,.18),transparent 60%),
+  linear-gradient(180deg,#f6f3ee,#ece8e1);
+  background-attachment:fixed}
+.card,.kpi{background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--glass-shadow);
+  -webkit-backdrop-filter:blur(14px) saturate(1.5);backdrop-filter:blur(14px) saturate(1.5)}
+.topbar{background:rgba(255,255,255,.5);border-bottom:1px solid var(--glass-line);box-shadow:0 4px 24px rgba(31,42,51,.07);
+  -webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
+.btn,.seg,select,input[type=search]{background-color:rgba(255,255,255,.55)}
+dialog.guide{background:rgba(250,248,244,.78);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
+.guide-head{background:rgba(250,248,244,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.tour-pop{background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--glass-line)}
+
+/* indicadores principais ficam presos logo abaixo do topo */
+.kpis{position:sticky;top:calc(var(--tb) + 8px);z-index:15;padding:8px;margin:0 -8px 4px;border-radius:18px;
+  background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.5);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:padding .2s ease}
+.kpis .kpi{transition:min-height .2s ease,padding .2s ease}
+.kpis.compact{padding:5px 6px;gap:8px}
+.kpis.compact .kpi{min-height:0;padding:7px 10px 6px}
+.kpis.compact .kpi .val{font-size:18px;margin-top:1px}
+.kpis.compact .kpi .val small{font-size:10px}
+.kpis.compact .kpi .lab{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpis.compact .kpi .pill{margin-top:2px;font-size:9px;padding:0 5px}
+.kpis.compact .kpi .hint,.kpis.compact .kpi svg.spark{display:none}
+.feed{top:calc(var(--tb) + 8px);max-height:calc(100vh - var(--tb) - 24px)}
+.card{scroll-margin-top:calc(var(--tb) + 110px)}
+@media (max-width:1100px){.kpis{position:static;margin:0 0 4px;padding:0;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (prefers-reduced-motion:reduce){.kpis,.kpis .kpi{transition:none}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.card,.kpi{background:rgba(255,255,255,.92)}.topbar{background:rgba(244,242,238,.96)}}
+.kpis.compact{background:rgba(245,242,236,.62);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 10px 30px rgba(31,42,51,.12)}
+.kpis.compact .kpi{background:rgba(255,255,255,.82)}
+.topbar{background:rgba(255,255,255,.62)}
