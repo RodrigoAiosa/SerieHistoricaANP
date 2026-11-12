@@ -15,6 +15,7 @@ Observação: os layouts dos CSVs da ANP variaram ao longo dos anos. Este script
 normaliza nomes de colunas e produtos; se algum semestre falhar, ele avisa e
 segue, para você ajustar o mapeamento em COLS/PRODUCTS.
 """
+import csv
 import json
 import sys
 import unicodedata
@@ -62,10 +63,10 @@ def main(raw_dir):
     for f in files:
         try:
             df = pd.read_csv(f, sep=";", decimal=",", encoding="utf-8",
-                             dtype=str, on_bad_lines="skip")
+                             dtype=str, on_bad_lines="skip", quoting=csv.QUOTE_NONE)
         except UnicodeDecodeError:
             df = pd.read_csv(f, sep=";", decimal=",", encoding="latin-1",
-                             dtype=str, on_bad_lines="skip")
+                             dtype=str, on_bad_lines="skip", quoting=csv.QUOTE_NONE)
         df.columns = [norm(c) for c in df.columns]
         df = df.rename(columns={c: COLS[c] for c in df.columns if c in COLS})
         if not {"uf", "produto", "data", "venda"} <= set(df.columns):
