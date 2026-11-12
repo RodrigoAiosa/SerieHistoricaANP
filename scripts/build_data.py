@@ -79,7 +79,14 @@ def main(raw_dir):
         iso = df["data"].isna()
         if iso.any():  # alguns semestres vêm em AAAA-MM-DD
             df.loc[iso, "data"] = pd.to_datetime(raw_d[iso], format="ISO8601", errors="coerce")
+        n_ini = len(df)
+        bad_d = int(df["data"].isna().sum()); bad_v = int(df["venda"].isna().sum())
+        amostra = raw_d[df["data"].isna()].head(2).tolist()
         df = df.dropna(subset=["venda", "data"])  # exige preço e data válidos
+        if bad_d or bad_v:
+            print(f"  [diag] {f.name}: {n_ini:,} linhas, data inválida {bad_d:,} (ex.: {amostra}), preço inválido {bad_v:,}")
+        if len(df):
+            print(f"  [diag] {f.name}: meses {df['data'].dt.strftime('%Y-%m').nunique()} ({df['data'].min():%Y-%m}..{df['data'].max():%Y-%m})")
         total += len(df)                         # coletas = linhas efetivamente usadas pelo painel
         df["ym"] = df["data"].dt.strftime("%Y-%m")
         parts.append(df.groupby(["fuel", "uf", "ym"])["venda"].agg(["sum", "count"]).reset_index())
