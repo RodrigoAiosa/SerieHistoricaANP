@@ -182,6 +182,7 @@
     $('#tb-more').onchange = (e) => { S.tm = e.target.checked; writeHash(); buildTable(); };
     $('#tb-csv').onclick = downloadTableCsv;
     buildGuide();
+    buildTour();
     if (!D.band) $('#card-band').hidden = true;
     document.querySelectorAll('#map-metric button').forEach(b => b.onclick = () => { S.mapMetric = b.dataset.m; renderAll(false); });
     if (D.meta.demo) $('#demo-flag').hidden = false;
@@ -459,6 +460,91 @@
       target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
     });
+  }
+
+  /* ---------- tour guiado (1º acesso): destaca um item e desfoca o resto ---------- */
+  const TOUR = [
+    ['.topbar', 'Comece pelos filtros', 'Escolha o estado, o combustível e se quer ver os preços como foram coletados (Nominal) ou corrigidos pela inflação (Real). Tudo no painel acompanha.'],
+    ['.timebar', 'Viaje no tempo', 'Arraste o controle para escolher o mês, ou aperte ▶ para ver a história passar mês a mês. “Mais recente” volta ao último dado.'],
+    ['#kpis', 'O retrato do mês', 'Preço médio da gasolina, do etanol e do diesel, quanto variaram contra o mês anterior e se o etanol compensa (regra dos 70%).'],
+    ['.feed', 'O que aconteceu', 'Greves, guerras, reajustes e mudanças de política que mexeram com o preço, com a fonte. Busque por um termo e clique num fato para ir ao mês dele.'],
+    ['#chart-line', 'Vinte e dois anos em uma linha', 'A série mensal desde 2004, com os governos ao fundo e os fatos do feed no topo. Passe o mouse para ver os valores e clique para ir ao mês.'],
+    ['#chart-map', 'Onde custa mais', 'O mapa colore os estados pelo valor do mês. Clique em um estado para filtrar o painel inteiro por ele.'],
+    ['#chart-infl', 'Combustível x inflação', 'Tudo em base 100: acima da linha tracejada do IPCA, o combustível subiu mais que a inflação.'],
+    ['#chart-cmat', 'Correlações', 'Quanto gasolina, etanol, diesel e inflação andam juntos. Clique numa célula para ver o par em detalhe.'],
+    ['#tabela', 'Os números exatos', 'Período, valor, variação contra o ano anterior (YoY) e contra o mês anterior (MoM), com mínimo e máximo. Dá para baixar em CSV.'],
+    ['#btn-guide', 'Pronto! Para rever', 'O Sumário explica cada gráfico e indicador, e o botão “Tour” repete esta visita guiada quando quiser.'],
+  ];
+  function buildTour() {
+    const KEY = 'anp-tour-v1';
+    const seen = () => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } };
+    const mark = () => { try { localStorage.setItem(KEY, '1'); } catch (e) { /* sem storage: ok */ } };
+    let i = 0, root = null;
+    const el = (cls, parent) => { const n = document.createElement('div'); n.className = cls; parent.appendChild(n); return n; };
+    const targetOf = (sel) => { const n = document.querySelector(sel); return n && (n.matches('button') ? n : n.closest('.card, .feed, .timebar, .topbar, .kpis') || n); };
+    function place() {
+      if (!root) return;
+      const t = targetOf(TOUR[i][0]); if (!t) return;
+      const vw = innerWidth, vh = innerHeight, pad = 8;
+      const r = t.getBoundingClientRect();
+      const x0 = Math.max(0, r.left - pad), y0 = Math.max(0, r.top - pad);
+      const x1 = Math.min(vw, r.right + pad), y1 = Math.min(vh, r.bottom + pad);
+      const set = (n, l, tp, w, h) => Object.assign(n.style, { left: l + 'px', top: tp + 'px', width: Math.max(0, w) + 'px', height: Math.max(0, h) + 'px' });
+      set(root._top, 0, 0, vw, y0); set(root._bot, 0, y1, vw, vh - y1);
+      set(root._lft, 0, y0, x0, y1 - y0); set(root._rgt, x1, y0, vw - x1, y1 - y0);
+      set(root._ring, x0, y0, x1 - x0, y1 - y0);
+      const pop = root._pop, pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 14;
+      let px, py;
+      if (vh - y1 >= ph + gap) { py = y1 + gap; px = x0; }                     // abaixo
+      else if (y0 >= ph + gap) { py = y0 - ph - gap; px = x0; }                 // acima
+      else if (vw - x1 >= pw + gap) { px = x1 + gap; py = y0; }                 // à direita
+      else if (x0 >= pw + gap) { px = x0 - pw - gap; py = y0; }                 // à esquerda
+      else { px = (vw - pw) / 2; py = vh - ph - 16; }                            // sobre o item
+      px = Math.min(Math.max(12, px), vw - pw - 12); py = Math.min(Math.max(12, py), vh - ph - 12);
+      pop.style.left = px + 'px'; pop.style.top = py + 'px';
+    }
+    function show(n) {
+      i = n;
+      const [sel, title, text] = TOUR[i], t = targetOf(sel);
+      if (!t) { return i < TOUR.length - 1 ? show(i + 1) : end(); }
+      const pop = root._pop;
+      pop.innerHTML = `<p class="tour-step">${i + 1} / ${TOUR.length}</p><h3>${title}</h3><p>${text}</p>
+        <div class="tour-nav"><button type="button" class="btn txt" data-a="skip">Pular</button><span class="spacer"></span>
+        ${i > 0 ? '<button type="button" class="btn txt" data-a="prev">← Anterior</button>' : ''}
+        <button type="button" class="btn primary" data-a="next">${i === TOUR.length - 1 ? 'Concluir' : 'Próximo →'}</button></div>`;
+      pop.querySelector('[data-a=next]').focus({ preventScroll: true });
+      const r = t.getBoundingClientRect();
+      const fits = r.height < innerHeight * .8;
+      t.scrollIntoView({ behavior: 'auto', block: fits ? 'center' : 'start' });
+      requestAnimationFrame(() => { place(); requestAnimationFrame(place); });
+    }
+    function end() {
+      if (!root) return;
+      mark(); removeEventListener('resize', place); removeEventListener('scroll', place, true); removeEventListener('keydown', onKey, true);
+      root.remove(); root = null; window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); end(); }
+      else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); i < TOUR.length - 1 ? show(i + 1) : end(); }
+      else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); show(i - 1); }
+    }
+    function start() {
+      if (root) return;
+      const dlg = $('#guide'); if (dlg && dlg.open) dlg.close();
+      root = document.createElement('div'); root.className = 'tour'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Tour guiado do painel');
+      root._top = el('tour-shade', root); root._bot = el('tour-shade', root); root._lft = el('tour-shade', root); root._rgt = el('tour-shade', root);
+      root._ring = el('tour-ring', root); root._pop = el('tour-pop', root);
+      root._pop.addEventListener('click', (e) => {
+        const a = e.target.closest('[data-a]'); if (!a) return;
+        if (a.dataset.a === 'next') { i < TOUR.length - 1 ? show(i + 1) : end(); }
+        else if (a.dataset.a === 'prev') show(i - 1); else end();
+      });
+      document.body.appendChild(root);
+      addEventListener('resize', place); addEventListener('scroll', place, true); addEventListener('keydown', onKey, true);
+      show(0);
+    }
+    $('#btn-tour').onclick = start;
+    if (!seen()) setTimeout(start, 900);
   }
 
 
